@@ -2,7 +2,7 @@
 // Used by the Settings > Models tab and the in-chat model picker so
 // both surfaces share a single, brand-themed list.
 
-export type ProviderId = "anthropic" | "openai" | "google";
+export type ProviderId = "anthropic" | "openai" | "google" | "ollama";
 
 export interface ModelOption {
   /** Value persisted on the profile / used at call time. */
