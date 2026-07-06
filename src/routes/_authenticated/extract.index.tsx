@@ -128,7 +128,7 @@ function ExtractList() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         userId={user.id}
-        onCreated={(id) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
+        onCreated={(id: string) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
       />
     </AppShell>
   );
