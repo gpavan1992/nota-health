@@ -977,40 +977,24 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
       <CardHeader>
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
-          Choose which model powers each Nota Health workflow.
+          Choose which model powers each Nota Health workflow. Models are grouped
+          by provider — Anthropic, OpenAI, and Google Gemini.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSave} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="primary-model">Primary model — Clinical Assistant</Label>
-            <Select value={primary} onValueChange={setPrimary}>
-              <SelectTrigger id="primary-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GroupedModelSelect id="primary-model" value={primary} onValueChange={setPrimary} showHint />
           </div>
           <div className="space-y-2">
             <Label htmlFor="secondary-model">Secondary model — Clinical Extractions</Label>
-            <Select value={secondary} onValueChange={setSecondary}>
-              <SelectTrigger id="secondary-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GroupedModelSelect
+              id="secondary-model"
+              value={secondary}
+              onValueChange={setSecondary}
+              showHint
+            />
           </div>
 
           <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
