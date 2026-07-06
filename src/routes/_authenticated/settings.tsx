@@ -1270,7 +1270,7 @@ function OllamaEndpointCard({
     if (trimmed) next.ollama_base_url = trimmed;
     else delete next.ollama_base_url;
     try {
-      await update.mutateAsync({ preferences: next });
+      await update.mutateAsync({ preferences: next as never });
       toast.success(trimmed ? "Ollama endpoint saved" : "Ollama endpoint removed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
