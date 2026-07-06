@@ -449,30 +449,6 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
-/* ---------- Trust signals row (under buttons) ---------- */
-
-function TrustSignalRow({ className = "" }: { className?: string }) {
-  const items = [
-    { icon: Lock, label: "AES-256 Encrypted" },
-    { icon: Hospital, label: "HIPAA Architected" },
-    { icon: Sparkles, label: "Open Source" },
-  ];
-  return (
-    <div
-      className={
-        "flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground " +
-        className
-      }
-    >
-      {items.map((it) => (
-        <span key={it.label} className="inline-flex items-center gap-1.5">
-          <it.icon className="h-3.5 w-3.5 text-primary" />
-          {it.label}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 /* ---------- Architecture badges (bottom of left panel) ---------- */
 
