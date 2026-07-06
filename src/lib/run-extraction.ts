@@ -1,0 +1,137 @@
+import { getModelChoice } from "./chat-stream";
+import type { ProtocolColumn } from "./protocols";
+
+export interface ExtractParams {
+  apiKey: string;
+  modelId: string;
+  protocolName: string;
+  columns: ProtocolColumn[]; // may be empty for custom
+  customInstruction?: string;
+  documents: { name: string; text: string }[];
+}
+
+export interface ExtractResult {
+  columns: ProtocolColumn[];
+  rows: Record<string, string>[];
+}
+
+/**
+ * Runs a structured extraction against the user's own Anthropic/OpenAI key.
+ * Returns { columns, rows } where rows are arrays of column-key -> string.
+ */
+export async function runExtraction(p: ExtractParams): Promise<ExtractResult> {
+  const choice = getModelChoice(p.modelId);
+  const docsBlock = p.documents
+    .map((d) => `--- Document: ${d.name} ---\n${d.text.slice(0, 40000)}`)
+    .join("\n\n");
+
+  const columnSpec = p.columns.length
+    ? `Return a JSON object of the form:
+{
+  "columns": [ { "key": string, "label": string } ],
+  "rows": [ { "<key>": string, ... } ]
+}
+Use exactly these columns (keep keys and labels as given):
+${p.columns.map((c) => `- ${c.key} (${c.label})${c.description ? " — " + c.description : ""}`).join("\n")}`
+    : `Design a small table (3–8 columns) that best captures what the user asked for. Return:
+{
+  "columns": [ { "key": string, "label": string } ],
+  "rows": [ { "<key>": string, ... } ]
+}
+User instruction: ${p.customInstruction ?? "Extract the most clinically useful structured data."}`;
+
+  const prompt = `You are a clinical data extraction assistant. Read the attached documents and produce a structured table for the protocol: ${p.protocolName}.
+
+${columnSpec}
+
+Rules:
+- Return VALID JSON only, no prose, no markdown fences.
+- Every row value must be a string (use "" if unknown).
+- Include one row per distinct item found (e.g. one row per medication).
+- Preserve exact dosages, ICD codes, drug names, and identifiers as written in the source.
+
+Documents:
+${docsBlock}`;
+
+  let raw: string;
+  if (choice.provider === "anthropic") {
+    raw = await callAnthropicJSON(p.apiKey, choice.model, prompt);
+  } else {
+    raw = await callOpenAIJSON(p.apiKey, choice.model, prompt);
+  }
+
+  const parsed = safeParseJSON(raw);
+  if (!parsed || !Array.isArray(parsed.rows) || !Array.isArray(parsed.columns)) {
+    throw new Error("AI did not return valid extraction JSON.");
+  }
+  const columns: ProtocolColumn[] = parsed.columns.map((c: { key: string; label: string }) => ({
+    key: String(c.key),
+    label: String(c.label),
+  }));
+  const rows: Record<string, string>[] = parsed.rows.map((r: Record<string, unknown>) => {
+    const out: Record<string, string> = {};
+    for (const col of columns) {
+      const v = r?.[col.key];
+      out[col.key] = v == null ? "" : String(v);
+    }
+    return out;
+  });
+  return { columns, rows };
+}
+
+async function callAnthropicJSON(apiKey: string, model: string, prompt: string): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  const text = data?.content?.[0]?.text;
+  if (typeof text !== "string") throw new Error("Empty Anthropic response");
+  return text;
+}
+
+async function callOpenAIJSON(apiKey: string, model: string, prompt: string): Promise<string> {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== "string") throw new Error("Empty OpenAI response");
+  return text;
+}
+
+function safeParseJSON(text: string): { columns: unknown[]; rows: unknown[] } | null {
+  const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // Try to find first {...} block
+    const m = trimmed.match(/\{[\s\S]*\}/);
+    if (m) {
+      try {
+        return JSON.parse(m[0]);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
