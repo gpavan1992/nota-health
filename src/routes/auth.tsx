@@ -22,7 +22,7 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       if (data.session) {
-        navigate({ to: "/dashboard", replace: true });
+        navigate({ to: "/assistant", replace: true });
       } else {
         setReady(true);
       }
@@ -54,10 +54,10 @@ function AuthPage() {
                 <TabsTrigger value="signup">Sign up</TabsTrigger>
               </TabsList>
               <TabsContent value="signin" className="mt-6">
-                <SignInForm onSuccess={() => navigate({ to: "/dashboard", replace: true })} />
+                <SignInForm onSuccess={() => navigate({ to: "/assistant", replace: true })} />
               </TabsContent>
               <TabsContent value="signup" className="mt-6">
-                <SignUpForm onSignedIn={() => navigate({ to: "/dashboard", replace: true })} />
+                <SignUpForm onSignedIn={() => navigate({ to: "/assistant", replace: true })} />
               </TabsContent>
             </Tabs>
           </CardContent>

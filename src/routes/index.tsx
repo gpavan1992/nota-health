@@ -19,7 +19,7 @@ function Landing() {
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       if (data.session) {
-        navigate({ to: "/dashboard", replace: true });
+        navigate({ to: "/assistant", replace: true });
       } else {
         setChecked(true);
       }

@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate, useParams } from "@tanstack/react-router";
 import {
   MessageSquareText,
   FolderOpen,
@@ -6,6 +6,8 @@ import {
   BookMarked,
   Settings as SettingsIcon,
   FileText,
+  Plus,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -20,7 +22,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NotaLogo } from "@/components/nota-logo";
+import { Button } from "@/components/ui/button";
 import type { Profile } from "@/hooks/use-profile";
+import { useChatThreads, useCreateThread } from "@/hooks/use-chat-threads";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { title: "Clinical Assistant", to: "/assistant", icon: MessageSquareText },
@@ -29,8 +35,20 @@ const NAV = [
   { title: "Protocols", to: "/protocols", icon: BookMarked },
 ] as const;
 
-// Static placeholder — real cases wire in once the feature ships.
-const RECENT_CASES: { id: string; label: string; mrn: string }[] = [];
+function useRecentCases(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["recent_cases", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cases")
+        .select("id, name")
+        .order("updated_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+}
 
 const ROLE_LABEL: Record<string, string> = {
   clinician: "Clinician",
@@ -47,6 +65,19 @@ export function AppSidebar({
   profile: Profile | null | undefined;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const params = useParams({ strict: false }) as { threadId?: string };
+  const activeThreadId = params.threadId;
+  const { data: threads } = useChatThreads(user.id);
+  const { data: recentCases } = useRecentCases(user.id);
+  const createThread = useCreateThread(user.id);
+
+  function handleNewChat() {
+    createThread.mutate(undefined, {
+      onSuccess: (t) =>
+        navigate({ to: "/assistant/$threadId", params: { threadId: t.id } }),
+    });
+  }
   const displayName = profile?.full_name?.trim() || user.email || "Signed in";
   const roleLabel = profile?.role ? ROLE_LABEL[profile.role] : "Add your role";
 
@@ -74,6 +105,17 @@ export function AppSidebar({
 
       <SidebarContent className="px-2">
         <SidebarGroup>
+          <div className="mb-2 px-2 group-data-[collapsible=icon]:hidden">
+            <Button
+              onClick={handleNewChat}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 border-sidebar-border/60 bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New chat
+            </Button>
+          </div>
           <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
             Workspace
           </SidebarGroupLabel>
@@ -106,21 +148,48 @@ export function AppSidebar({
             Recent Cases
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            {RECENT_CASES.length === 0 ? (
+            {!recentCases || recentCases.length === 0 ? (
               <p className="px-2 py-2 text-xs leading-relaxed text-sidebar-foreground/50">
                 Recently opened cases will appear here.
               </p>
             ) : (
               <SidebarMenu>
-                {RECENT_CASES.map((c) => (
+                {recentCases.map((c) => (
                   <SidebarMenuItem key={c.id}>
                     <SidebarMenuButton asChild size="sm">
-                      <Link to="/cases">
+                      <Link to="/cases/$caseId" params={{ caseId: c.id }}>
                         <FileText />
-                        <span className="flex-1 truncate">{c.label}</span>
-                        <span className="font-mono text-[10px] text-sidebar-foreground/50">
-                          {c.mrn}
-                        </span>
+                        <span className="flex-1 truncate">{c.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
+            Chat History
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {!threads || threads.length === 0 ? (
+              <p className="px-2 py-2 text-xs leading-relaxed text-sidebar-foreground/50">
+                Your conversations will appear here.
+              </p>
+            ) : (
+              <SidebarMenu>
+                {threads.slice(0, 15).map((t) => (
+                  <SidebarMenuItem key={t.id}>
+                    <SidebarMenuButton
+                      asChild
+                      size="sm"
+                      isActive={activeThreadId === t.id}
+                    >
+                      <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
+                        <MessageCircle />
+                        <span className="flex-1 truncate">{t.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -130,6 +199,7 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
 
       <SidebarFooter className="border-t border-sidebar-border/60 p-3">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
