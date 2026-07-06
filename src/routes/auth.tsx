@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Lock,
-  ShieldCheck,
   Server,
   Database,
   Award,
