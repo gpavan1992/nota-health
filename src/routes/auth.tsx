@@ -434,9 +434,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
         </Button>
       </form>
 
-      <TrustSignalRow className="mt-6" />
-
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
         By signing up, you agree to our{" "}
         <Link to="/compliance" className="underline hover:text-foreground">
           Terms of Use
