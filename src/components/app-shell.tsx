@@ -24,7 +24,11 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: profile, isLoading } = useProfile(user.id);
 
-  const missingKey = !isLoading && !profile?.anthropic_api_key;
+  const missingKey =
+    !isLoading &&
+    !profile?.anthropic_api_key &&
+    !profile?.openai_api_key &&
+    !profile?.google_api_key;
   const onSettings = pathname.startsWith("/settings");
 
   async function handleSignOut() {
