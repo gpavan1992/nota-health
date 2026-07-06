@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_conversations: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          title: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          title?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_conversations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_documents: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_members: {
+        Row: {
+          added_by: string
+          case_id: string
+          created_at: string
+          id: string
+          member_email: string
+        }
+        Insert: {
+          added_by: string
+          case_id: string
+          created_at?: string
+          id?: string
+          member_email: string
+        }
+        Update: {
+          added_by?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+          member_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_members_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          case_ref: string | null
+          case_type: Database["public"]["Enums"]["case_type_enum"]
+          created_at: string
+          id: string
+          last_activity_at: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_ref?: string | null
+          case_type?: Database["public"]["Enums"]["case_type_enum"]
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_ref?: string | null
+          case_type?: Database["public"]["Enums"]["case_type_enum"]
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_model: string
@@ -52,10 +175,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_case_member: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_case_owner: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      case_type_enum: "patient" | "department" | "research" | "general"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -182,6 +312,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      case_type_enum: ["patient", "department", "research", "general"],
+    },
   },
 } as const
