@@ -31,7 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
-import { MODEL_CHOICES, streamChat, type WireMessage } from "@/lib/chat-stream";
+import { streamChat, type WireMessage } from "@/lib/chat-stream";
+import { GroupedModelSelect } from "@/components/grouped-model-select";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
   validateSearch: (search: Record<string, unknown>) => ({
