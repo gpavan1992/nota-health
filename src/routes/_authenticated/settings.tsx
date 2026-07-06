@@ -78,14 +78,9 @@ const ROLES = [
   { value: "patient_advocate", label: "Patient Advocate" },
 ] as const;
 
-const MODELS = [
-  { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet — best clinical reasoning" },
-  { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku — fast, low cost" },
-  { value: "gpt-4o", label: "GPT-4o — strong general model" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini — economical" },
-  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro — long context" },
-  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash — fastest" },
-] as const;
+// Model list now lives in `@/lib/model-catalog` and is grouped by provider
+// (Anthropic / OpenAI / Google Gemini). We keep a legacy label map here only
+// for the "current selection" summary text.
 
 type Preferences = {
   drug_interactions: boolean;
