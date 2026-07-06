@@ -12,6 +12,7 @@ import {
   BookOpen,
   UserRound,
   Hash,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
