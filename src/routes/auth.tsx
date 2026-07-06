@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Lock,
-  Hospital,
   ShieldCheck,
   Server,
   Database,
@@ -183,8 +182,6 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-
-      <TrustSignalRow className="mt-6" />
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         New to Nota?{" "}
@@ -436,9 +433,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
         </Button>
       </form>
 
-      <TrustSignalRow className="mt-6" />
-
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
         By signing up, you agree to our{" "}
         <Link to="/compliance" className="underline hover:text-foreground">
           Terms of Use
@@ -453,45 +448,20 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
-/* ---------- Trust signals row (under buttons) ---------- */
 
-function TrustSignalRow({ className = "" }: { className?: string }) {
-  const items = [
-    { icon: Lock, label: "AES-256 Encrypted" },
-    { icon: Hospital, label: "HIPAA Architected" },
-    { icon: Sparkles, label: "Open Source" },
-  ];
-  return (
-    <div
-      className={
-        "flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground " +
-        className
-      }
-    >
-      {items.map((it) => (
-        <span key={it.label} className="inline-flex items-center gap-1.5">
-          <it.icon className="h-3.5 w-3.5 text-primary" />
-          {it.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/* ---------- Compliance badges (shield-style, bottom of left panel) ---------- */
+/* ---------- Architecture badges (bottom of left panel) ---------- */
 
 type ShieldBadge = {
   label: string;
   sub: string;
   tone: "primary" | "accent" | "neutral";
-  icon: typeof Hospital;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 const COMPLIANCE_BADGES: ShieldBadge[] = [
-  { label: "HIPAA", sub: "Architected", tone: "primary", icon: Hospital },
   { label: "AES-256", sub: "Encrypted", tone: "accent", icon: Lock },
-  { label: "AGPL-3.0", sub: "Open Source", tone: "neutral", icon: Award },
   { label: "RLS", sub: "Row-Level Security", tone: "primary", icon: Database },
+  { label: "AGPL-3.0", sub: "Open Source", tone: "neutral", icon: Award },
   { label: "Self-Host", sub: "Deployable", tone: "accent", icon: Server },
   { label: "SOC 2", sub: "Roadmap", tone: "neutral", icon: ShieldCheck },
 ];
@@ -514,7 +484,7 @@ function ComplianceShield({ b }: { b: ShieldBadge }) {
             "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
         }}
       >
-        <b.icon className="h-5 w-5" strokeWidth={2} />
+        <b.icon className="h-5 w-5" />
       </div>
       <div className="text-center leading-tight">
         <div className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-foreground">
