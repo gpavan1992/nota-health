@@ -105,12 +105,12 @@ function AssistantThread() {
     // Pull case documents
     const { data: docs } = await supabase
       .from("case_documents")
-      .select("title, description")
+      .select("name")
       .eq("case_id", caseId);
     if (docs && docs.length > 0) {
       setAttachments((a) => [
         ...a,
-        ...docs.map((d) => ({ name: d.title, text: d.description ?? "" })),
+        ...docs.map((d) => ({ name: d.name, text: "" })),
       ]);
     }
   }
