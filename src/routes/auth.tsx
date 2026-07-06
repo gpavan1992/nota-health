@@ -4,12 +4,12 @@ import { toast } from "sonner";
 import {
   Lock,
   Hospital,
-  Star,
   ShieldCheck,
-  KeyRound,
   Server,
   Database,
   Award,
+  ArrowUp,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
