@@ -8,6 +8,10 @@ import {
   FileText,
   Plus,
   MessageCircle,
+  Pill,
+  BookOpen,
+  UserRound,
+  Hash,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +38,14 @@ const NAV = [
   { title: "Clinical Extract", to: "/extract", icon: FileSearch },
   { title: "Protocols", to: "/protocols", icon: BookMarked },
 ] as const;
+
+const TOOLS = [
+  { title: "Drug Database", to: "/tools/drug", icon: Pill },
+  { title: "Medical Literature", to: "/tools/pubmed", icon: BookOpen },
+  { title: "Provider Verification", to: "/tools/provider", icon: UserRound },
+  { title: "ICD Code Lookup", to: "/tools/icd", icon: Hash },
+] as const;
+
 
 function useRecentCases(userId: string | undefined) {
   return useQuery({
