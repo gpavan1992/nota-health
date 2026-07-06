@@ -24,7 +24,11 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: profile, isLoading } = useProfile(user.id);
 
-  const missingKey = !isLoading && !profile?.anthropic_api_key;
+  const missingKey =
+    !isLoading &&
+    !profile?.anthropic_api_key &&
+    !profile?.openai_api_key &&
+    !profile?.google_api_key;
   const onSettings = pathname.startsWith("/settings");
 
   async function handleSignOut() {
@@ -64,7 +68,7 @@ export function AppShell({
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <KeyRound className="h-4 w-4 text-warning-foreground" />
                 <span>
-                  Add your Anthropic API key in Settings to activate the
+                  Add an AI provider API key in Settings to activate the
                   Clinical Assistant.
                 </span>
               </div>

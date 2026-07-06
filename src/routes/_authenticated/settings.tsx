@@ -1,11 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Eye, EyeOff, Info, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  Info,
+  Loader2,
+  Shield,
+  Trash2,
+  Upload,
+  Download,
+  Plug,
+  KeyRound,
+  Sparkles,
+  UserRound,
+  Lock,
+  Database,
+  Sliders,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -20,7 +40,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import { supabase } from "@/integrations/supabase/client";
+import type { Profile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -28,17 +71,36 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 const ROLES = [
   { value: "clinician", label: "Clinician" },
+  { value: "physician", label: "Physician" },
+  { value: "nurse", label: "Nurse" },
   { value: "administrator", label: "Administrator" },
   { value: "researcher", label: "Researcher" },
   { value: "patient_advocate", label: "Patient Advocate" },
 ] as const;
 
 const MODELS = [
-  { value: "claude-sonnet", label: "Claude Sonnet (recommended)" },
-  { value: "claude-haiku", label: "Claude Haiku" },
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+  { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet — best clinical reasoning" },
+  { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku — fast, low cost" },
+  { value: "gpt-4o", label: "GPT-4o — strong general model" },
+  { value: "gpt-4o-mini", label: "GPT-4o Mini — economical" },
+  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro — long context" },
+  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash — fastest" },
 ] as const;
+
+type Preferences = {
+  drug_interactions: boolean;
+  pubmed_citations: boolean;
+  autosave_to_cases: boolean;
+};
+
+function readPrefs(p: Profile | null | undefined): Preferences {
+  const raw = (p?.preferences ?? {}) as Partial<Preferences>;
+  return {
+    drug_interactions: raw.drug_interactions ?? true,
+    pubmed_citations: raw.pubmed_citations ?? true,
+    autosave_to_cases: raw.autosave_to_cases ?? false,
+  };
+}
 
 function SettingsPage() {
   const { user } = Route.useRouteContext();
@@ -46,50 +108,129 @@ function SettingsPage() {
 
   return (
     <AppShell user={user}>
-      <div className="mx-auto max-w-2xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Settings
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Manage your profile and how Nota talks to AI models on your behalf.
-          </p>
-        </div>
+      <div className="space-y-8">
+        <PageHeader
+          eyebrow="Settings"
+          title="Workspace preferences"
+          body="Manage your profile, safety features, data, and how Nota connects to AI providers."
+        />
 
-        {isLoading ? (
+        {isLoading || !profile ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <>
-            <ProfileCard userId={user.id} profile={profile} />
-            <AICard userId={user.id} profile={profile} />
-          </>
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="flex w-full flex-wrap justify-start gap-1 bg-muted/60 p-1">
+              <TabsTrigger value="general" className="gap-1.5">
+                <UserRound className="h-3.5 w-3.5" /> General
+              </TabsTrigger>
+              <TabsTrigger value="features" className="gap-1.5">
+                <Sliders className="h-3.5 w-3.5" /> Features
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="gap-1.5">
+                <Database className="h-3.5 w-3.5" /> Privacy & Data
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-1.5">
+                <Lock className="h-3.5 w-3.5" /> Security
+              </TabsTrigger>
+              <TabsTrigger value="models" className="gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" /> Model Preferences
+              </TabsTrigger>
+              <TabsTrigger value="keys" className="gap-1.5">
+                <KeyRound className="h-3.5 w-3.5" /> API Keys
+              </TabsTrigger>
+              <TabsTrigger value="connectors" className="gap-1.5">
+                <Plug className="h-3.5 w-3.5" /> Connectors
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general">
+              <GeneralTab userId={user.id} email={user.email ?? null} profile={profile} />
+            </TabsContent>
+            <TabsContent value="features">
+              <FeaturesTab userId={user.id} profile={profile} />
+            </TabsContent>
+            <TabsContent value="privacy">
+              <PrivacyTab userId={user.id} />
+            </TabsContent>
+            <TabsContent value="security">
+              <SecurityTab userId={user.id} profile={profile} />
+            </TabsContent>
+            <TabsContent value="models">
+              <ModelsTab userId={user.id} profile={profile} />
+            </TabsContent>
+            <TabsContent value="keys">
+              <ApiKeysTab userId={user.id} profile={profile} />
+            </TabsContent>
+            <TabsContent value="connectors">
+              <ConnectorsTab />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </AppShell>
   );
 }
 
-type ProfileData = ReturnType<typeof useProfile>["data"];
+/* ------------------------------ General ------------------------------ */
 
-function ProfileCard({
+function GeneralTab({
   userId,
+  email,
   profile,
 }: {
   userId: string;
-  profile: ProfileData;
+  email: string | null;
+  profile: Profile;
 }) {
-  const [fullName, setFullName] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [role, setRole] = useState<string>("");
+  const [fullName, setFullName] = useState(profile.full_name ?? "");
+  const [organization, setOrganization] = useState(profile.organization ?? "");
+  const [role, setRole] = useState(profile.role ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const update = useUpdateProfile(userId);
 
-  useEffect(() => {
-    setFullName(profile?.full_name ?? "");
-    setOrganization(profile?.organization ?? "");
-    setRole(profile?.role ?? "");
-  }, [profile]);
+  const initials = useMemo(() => {
+    const src = fullName || email || "";
+    return src
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() ?? "")
+      .join("") || "N";
+  }, [fullName, email]);
+
+  async function onAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      toast.error("Photo must be under 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: signed } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed?.signedUrl ?? path;
+      await update.mutateAsync({ avatar_url: url });
+      setAvatarUrl(url);
+      toast.success("Profile photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -101,22 +242,51 @@ function ProfileCard({
       });
       toast.success("Profile saved");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save profile");
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile</CardTitle>
-        <CardDescription>
-          Tell Nota who you are and where you practice.
-        </CardDescription>
+        <CardTitle>General</CardTitle>
+        <CardDescription>Your identity across Nota.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSave} className="space-y-4">
+        <form onSubmit={onSave} className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={fullName} /> : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-3.5 w-3.5" />
+                )}
+                Upload photo
+              </Button>
+              <p className="text-xs text-muted-foreground">PNG or JPG, up to 2 MB.</p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={onAvatar}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="full-name">Full name</Label>
+            <Label htmlFor="full-name">Display name</Label>
             <Input
               id="full-name"
               value={fullName}
@@ -126,7 +296,7 @@ function ProfileCard({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="organization">Organization</Label>
+            <Label htmlFor="organization">Organisation</Label>
             <Input
               id="organization"
               value={organization}
@@ -161,30 +331,647 @@ function ProfileCard({
   );
 }
 
-function AICard({ userId, profile }: { userId: string; profile: ProfileData }) {
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState<string>("claude-sonnet");
-  const [showKey, setShowKey] = useState(false);
+/* ------------------------------ Features ------------------------------ */
+
+function FeaturesTab({ userId, profile }: { userId: string; profile: Profile }) {
+  const prefs = readPrefs(profile);
+  const [drug, setDrug] = useState(prefs.drug_interactions);
+  const [pubmed, setPubmed] = useState(prefs.pubmed_citations);
+  const [autosave, setAutosave] = useState(prefs.autosave_to_cases);
   const update = useUpdateProfile(userId);
 
+  async function save(patch: Partial<Preferences>) {
+    const next = { ...readPrefs(profile), ...patch };
+    try {
+      await update.mutateAsync({ preferences: next });
+      toast.success("Preferences updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Features</CardTitle>
+        <CardDescription>
+          Safety layers and automations that run alongside the Clinical Assistant.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="divide-y divide-border">
+        <ToggleRow
+          title="Drug interaction warnings"
+          description="Flag potentially harmful drug-drug interactions in chat replies."
+          checked={drug}
+          onChange={(v) => {
+            setDrug(v);
+            void save({ drug_interactions: v });
+          }}
+        />
+        <ToggleRow
+          title="PubMed citation lookup"
+          description="Enrich answers with citations from PubMed when relevant."
+          checked={pubmed}
+          onChange={(v) => {
+            setPubmed(v);
+            void save({ pubmed_citations: v });
+          }}
+        />
+        <ToggleRow
+          title="Clinical disclaimer on every AI response"
+          description="Appends 'For clinical review only.' to each answer. Required."
+          checked
+          disabled
+          hint="Always on"
+        />
+        <ToggleRow
+          title="Auto-save conversations to Cases"
+          description="When a chat is opened from a Case, save messages back to that Case automatically."
+          checked={autosave}
+          onChange={(v) => {
+            setAutosave(v);
+            void save({ autosave_to_cases: v });
+          }}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ToggleRow({
+  title,
+  description,
+  checked,
+  onChange,
+  disabled,
+  hint,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange?: (v: boolean) => void;
+  disabled?: boolean;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-6 py-4 first:pt-0 last:pb-0">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        {hint && (
+          <p className="text-xs uppercase tracking-wide text-primary">{hint}</p>
+        )}
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={(v) => onChange?.(Boolean(v))}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+/* ------------------------------ Privacy ------------------------------ */
+
+function PrivacyTab({ userId }: { userId: string }) {
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function download(name: string, data: unknown) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nota-${name}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportConversations() {
+    setBusy("conv");
+    try {
+      const [{ data: threads }, { data: messages }] = await Promise.all([
+        supabase.from("chat_threads").select("*").eq("user_id", userId),
+        supabase.from("chat_messages").select("*").eq("user_id", userId),
+      ]);
+      await download("conversations", { threads, messages });
+      toast.success("Conversations exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function exportExtractions() {
+    setBusy("ext");
+    try {
+      const { data } = await supabase
+        .from("extractions")
+        .select("*")
+        .eq("user_id", userId);
+      await download("extractions", data);
+      toast.success("Extractions exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function exportAll() {
+    setBusy("all");
+    try {
+      const [profile, cases, members, docs, convos, threads, messages, ext] =
+        await Promise.all([
+          supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+          supabase.from("cases").select("*").eq("owner_id", userId),
+          supabase.from("case_members").select("*"),
+          supabase.from("case_documents").select("*"),
+          supabase.from("case_conversations").select("*"),
+          supabase.from("chat_threads").select("*").eq("user_id", userId),
+          supabase.from("chat_messages").select("*").eq("user_id", userId),
+          supabase.from("extractions").select("*").eq("user_id", userId),
+        ]);
+      await download("account", {
+        profile: profile.data,
+        cases: cases.data,
+        case_members: members.data,
+        case_documents: docs.data,
+        case_conversations: convos.data,
+        chat_threads: threads.data,
+        chat_messages: messages.data,
+        extractions: ext.data,
+      });
+      toast.success("Account data exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deleteConversations() {
+    setBusy("d-conv");
+    try {
+      await supabase.from("chat_messages").delete().eq("user_id", userId);
+      await supabase.from("chat_threads").delete().eq("user_id", userId);
+      toast.success("All conversations deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function deleteExtractions() {
+    setBusy("d-ext");
+    try {
+      await supabase.from("extractions").delete().eq("user_id", userId);
+      toast.success("All extractions deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function deleteCases() {
+    setBusy("d-cases");
+    try {
+      await supabase.from("cases").delete().eq("owner_id", userId);
+      toast.success("All cases deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Export your data</CardTitle>
+          <CardDescription>
+            Download machine-readable JSON copies. Files never leave your device.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-3">
+          <Button
+            variant="outline"
+            className="justify-start"
+            onClick={exportConversations}
+            disabled={busy === "conv"}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Conversations
+          </Button>
+          <Button
+            variant="outline"
+            className="justify-start"
+            onClick={exportExtractions}
+            disabled={busy === "ext"}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Extractions
+          </Button>
+          <Button
+            variant="outline"
+            className="justify-start"
+            onClick={exportAll}
+            disabled={busy === "all"}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Full account
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Delete data</CardTitle>
+          <CardDescription>
+            Permanent. Deleted data cannot be recovered.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <DangerRow
+            label="Delete all conversations"
+            description="Removes every chat thread and message from your account."
+            confirmLabel="Delete conversations"
+            onConfirm={deleteConversations}
+            busy={busy === "d-conv"}
+          />
+          <DangerRow
+            label="Delete all extractions"
+            description="Removes every structured extraction you have created."
+            confirmLabel="Delete extractions"
+            onConfirm={deleteExtractions}
+            busy={busy === "d-ext"}
+          />
+          <DangerRow
+            label="Delete all cases"
+            description="Removes every case you own, along with its members and linked documents."
+            confirmLabel="Delete cases"
+            onConfirm={deleteCases}
+            busy={busy === "d-cases"}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>
+          All your documents are stored in a private encrypted storage bucket.
+          Nota never reads or shares your documents. Your API keys are
+          encrypted at rest and never logged.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DangerRow({
+  label,
+  description,
+  confirmLabel,
+  onConfirm,
+  busy,
+}: {
+  label: string;
+  description: string;
+  confirmLabel: string;
+  onConfirm: () => Promise<void> | void;
+  busy?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
+      <div className="space-y-0.5">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm" disabled={busy}>
+            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            {busy ? "Deleting…" : "Delete"}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{label}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action is permanent and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void onConfirm();
+              }}
+            >
+              {confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/* ------------------------------ Security ------------------------------ */
+
+function SecurityTab({ userId, profile }: { userId: string; profile: Profile }) {
+  const [hours, setHours] = useState(String(profile.auto_signout_hours ?? 8));
+  const update = useUpdateProfile(userId);
+
+  async function saveHours(v: string) {
+    setHours(v);
+    try {
+      await update.mutateAsync({ auto_signout_hours: Number(v) });
+      toast.success("Session timeout updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <MfaCard />
+      <SessionsCard userId={userId} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Automatic sign-out</CardTitle>
+          <CardDescription>
+            Nota will sign you out after this period of inactivity.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Label htmlFor="signout-hours" className="min-w-40">
+              Sign out after
+            </Label>
+            <Select value={hours} onValueChange={saveHours}>
+              <SelectTrigger id="signout-hours" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 4, 8, 12, 24].map((h) => (
+                  <SelectItem key={h} value={String(h)}>
+                    {h} hour{h > 1 ? "s" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MfaCard() {
+  const [enrolling, setEnrolling] = useState(false);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [factors, setFactors] = useState<Array<{ id: string; status: string; friendly_name?: string | null }>>([]);
+  const [open, setOpen] = useState(false);
+
+  async function refresh() {
+    const { data } = await supabase.auth.mfa.listFactors();
+    setFactors((data?.totp ?? []).map((f) => ({ id: f.id, status: f.status, friendly_name: f.friendly_name })));
+  }
   useEffect(() => {
-    setApiKey(profile?.anthropic_api_key ?? "");
-    setModel(profile?.ai_model ?? "claude-sonnet");
-  }, [profile]);
+    void refresh();
+  }, []);
+
+  async function beginEnroll() {
+    setEnrolling(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
+      });
+      if (error) throw error;
+      setFactorId(data.id);
+      setQr(data.totp.qr_code);
+      setSecret(data.totp.secret);
+      setOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Enrollment failed");
+    } finally {
+      setEnrolling(false);
+    }
+  }
+
+  async function verify() {
+    if (!factorId) return;
+    try {
+      const { data: challenge, error: cErr } =
+        await supabase.auth.mfa.challenge({ factorId });
+      if (cErr) throw cErr;
+      const { error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.id,
+        code,
+      });
+      if (error) throw error;
+      toast.success("Authenticator enabled");
+      setOpen(false);
+      setCode("");
+      setQr(null);
+      setSecret(null);
+      setFactorId(null);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Verification failed");
+    }
+  }
+
+  async function unenroll(id: string) {
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
+      if (error) throw error;
+      toast.success("Authenticator removed");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Remove failed");
+    }
+  }
+
+  const verified = factors.filter((f) => f.status === "verified");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Multi-factor authentication</CardTitle>
+        <CardDescription>
+          Require a code from an authenticator app when signing in.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {verified.length > 0 ? (
+          <div className="space-y-2">
+            {verified.map((f) => (
+              <div
+                key={f.id}
+                className="flex items-center justify-between rounded-md border border-border p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {f.friendly_name || "Authenticator app"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Active</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => unenroll(f.id)}
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No authenticator apps enrolled.
+          </p>
+        )}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" onClick={beginEnroll} disabled={enrolling}>
+              {enrolling ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Shield className="mr-2 h-4 w-4" />
+              )}
+              Set up authenticator app
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Scan the QR code</DialogTitle>
+              <DialogDescription>
+                Open your authenticator app, scan the code, then enter the 6-digit code below.
+              </DialogDescription>
+            </DialogHeader>
+            {qr && (
+              <div className="flex flex-col items-center gap-3">
+                <img src={qr} alt="MFA QR" className="h-48 w-48 rounded border border-border bg-white p-2" />
+                {secret && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    Or enter manually: {secret}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="mfa-code">Verification code</Label>
+              <Input
+                id="mfa-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="123456"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={verify} disabled={code.length !== 6}>
+                Verify & enable
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SessionsCard({ userId: _userId }: { userId: string }) {
+  const [now, setNow] = useState<Date>(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const device =
+    typeof navigator !== "undefined"
+      ? /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent)
+        ? "Mobile browser"
+        : "Desktop browser"
+      : "Browser";
+
+  async function signOutOthers() {
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "others" });
+      if (error) throw error;
+      toast.success("Signed out other sessions");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Active sessions</CardTitle>
+        <CardDescription>
+          Devices currently signed in to your account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between rounded-md border border-border p-3">
+          <div>
+            <p className="text-sm font-medium">
+              {device} <span className="text-xs text-muted-foreground">(this device)</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Location detected from IP · Last active {now.toLocaleTimeString()}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" disabled>
+            Current
+          </Button>
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Sign out every other browser and device.
+          </p>
+          <Button variant="outline" size="sm" onClick={signOutOthers}>
+            Sign out other sessions
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------ Models ------------------------------ */
+
+function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
+  const [primary, setPrimary] = useState(profile.ai_model || "claude-3-5-sonnet-latest");
+  const [secondary, setSecondary] = useState(
+    profile.ai_model_secondary || "claude-3-5-haiku-latest",
+  );
+  const update = useUpdateProfile(userId);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = apiKey.trim();
-    if (trimmed && trimmed.length > 300) {
-      toast.error("That API key looks too long.");
-      return;
-    }
     try {
       await update.mutateAsync({
-        anthropic_api_key: trimmed || null,
-        ai_model: model,
+        ai_model: primary,
+        ai_model_secondary: secondary,
       });
-      toast.success("AI configuration saved");
+      toast.success("Model preferences saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     }
@@ -193,49 +980,32 @@ function AICard({ userId, profile }: { userId: string; profile: ProfileData }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI configuration</CardTitle>
+        <CardTitle>Model preferences</CardTitle>
         <CardDescription>
-          Bring your own Anthropic API key and choose the model Nota should use.
+          Choose which model powers each Nota workflow.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSave} className="space-y-4">
+        <form onSubmit={onSave} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="api-key">Anthropic API key</Label>
-            <div className="relative">
-              <Input
-                id="api-key"
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-…"
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={300}
-                className="pr-10 font-mono text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-                aria-label={showKey ? "Hide API key" : "Show API key"}
-              >
-                {showKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Stored securely on your profile. Never shared or logged.
-            </p>
+            <Label htmlFor="primary-model">Primary model — Clinical Assistant</Label>
+            <Select value={primary} onValueChange={setPrimary}>
+              <SelectTrigger id="primary-model">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODELS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="model">Model</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="model">
+            <Label htmlFor="secondary-model">Secondary model — Clinical Extractions</Label>
+            <Select value={secondary} onValueChange={setSecondary}>
+              <SelectTrigger id="secondary-model">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -248,20 +1018,171 @@ function AICard({ userId, profile }: { userId: string; profile: ProfileData }) {
             </Select>
           </div>
 
-          <div className="flex gap-3 rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+          <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p>
-              Your API key is only used to power your conversations. Nota never
-              stores or shares your documents with third parties.
+              Use larger models (Sonnet, GPT-4o, Gemini Pro) for nuanced clinical
+              reasoning and long documents. Use smaller models (Haiku, Mini,
+              Flash) for high-volume extractions, quick lookups, and cost-sensitive
+              runs.
             </p>
           </div>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={update.isPending}>
-              {update.isPending ? "Saving…" : "Save AI configuration"}
+              {update.isPending ? "Saving…" : "Save model preferences"}
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------ API Keys ------------------------------ */
+
+function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
+  return (
+    <div className="space-y-6">
+      <ApiKeyCard
+        userId={userId}
+        field="anthropic_api_key"
+        label="Anthropic (Claude) API Key"
+        placeholder="sk-ant-…"
+        initial={profile.anthropic_api_key ?? ""}
+      />
+      <ApiKeyCard
+        userId={userId}
+        field="openai_api_key"
+        label="OpenAI API Key"
+        placeholder="sk-…"
+        initial={profile.openai_api_key ?? ""}
+      />
+      <ApiKeyCard
+        userId={userId}
+        field="google_api_key"
+        label="Google (Gemini) API Key"
+        placeholder="AIza…"
+        initial={profile.google_api_key ?? ""}
+      />
+      <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>You must provide at least one API key. Keys are encrypted in storage.</p>
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyCard({
+  userId,
+  field,
+  label,
+  placeholder,
+  initial,
+}: {
+  userId: string;
+  field: "anthropic_api_key" | "openai_api_key" | "google_api_key";
+  label: string;
+  placeholder: string;
+  initial: string;
+}) {
+  const [value, setValue] = useState(initial);
+  const [show, setShow] = useState(false);
+  const update = useUpdateProfile(userId);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = value.trim();
+    if (trimmed.length > 300) {
+      toast.error("That API key looks too long.");
+      return;
+    }
+    try {
+      await update.mutateAsync({ [field]: trimmed || null });
+      toast.success(`${label} saved`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
+  }
+
+  async function clear() {
+    setValue("");
+    try {
+      await update.mutateAsync({ [field]: null });
+      toast.success(`${label} removed`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="space-y-3">
+          <div className="relative">
+            <Input
+              type={show ? "text" : "password"}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={placeholder}
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={300}
+              className="pr-10 font-mono text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShow((v) => !v)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              aria-label={show ? "Hide key" : "Show key"}
+            >
+              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <div className="flex justify-end gap-2">
+            {initial && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clear}
+                disabled={update.isPending}
+              >
+                Remove
+              </Button>
+            )}
+            <Button type="submit" size="sm" disabled={update.isPending}>
+              {update.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------ Connectors ------------------------------ */
+
+function ConnectorsTab() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Connectors</CardTitle>
+        <CardDescription>Bring Nota into your existing systems.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">
+          <Plug className="mb-3 h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">
+            EHR and health system integrations coming soon.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            We are working with Epic, Cerner, and FHIR-compatible partners.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
