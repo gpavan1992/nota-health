@@ -1,32 +1,38 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Nota mark — a single continuous ECG pulse whose overall silhouette
- * traces the letter N. Baseline → sharp rise (R-wave / left leg) →
- * downstroke with QRS spike (diagonal) → sharp rise (right leg) →
- * baseline. No stethoscopes, crosses, hearts, or pills.
+ * Nota mark — a capital N whose diagonal center stroke is replaced by a
+ * single clean QRS heartbeat spike that rises above the cap height.
+ * Two vertical strokes + one QRS diagonal, all the same weight and colour.
+ * Reads as "N" at 16px; reads as "N with a heartbeat" at 120px.
  */
 export function NotaMark({
   className,
-  strokeWidth = 2.25,
+  strokeWidth = 4,
   ...props
 }: React.SVGProps<SVGSVGElement> & { strokeWidth?: number }) {
   return (
     <svg
-      viewBox="0 0 64 36"
+      viewBox="0 -12 40 52"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={cn("h-6 w-auto", className)}
       {...props}
     >
-      <path
-        d="M2 24 H10 L10 6 L26 30 L28.5 22 L30 28 L31.5 12 L33 28 L35 22 L38 30 L54 6 L54 24 H62"
+      <g
         stroke="currentColor"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
+      >
+        {/* Left vertical */}
+        <path d="M4 0 V36" />
+        {/* Right vertical */}
+        <path d="M36 0 V36" />
+        {/* QRS diagonal: top-left → down diagonal → Q dip → R spike above cap → S drop → diagonal → bottom-right */}
+        <path d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36" />
+      </g>
     </svg>
   );
 }
