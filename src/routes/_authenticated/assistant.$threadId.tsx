@@ -31,7 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
-import { MODEL_CHOICES, streamChat, type WireMessage } from "@/lib/chat-stream";
+import { streamChat, type WireMessage } from "@/lib/chat-stream";
+import { GroupedModelSelect } from "@/components/grouped-model-select";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -94,7 +95,7 @@ function AssistantThread() {
   }, [seed, threadId]);
 
 
-  const modelId = profile?.ai_model ?? "claude-sonnet";
+  const modelId = profile?.ai_model ?? "claude-sonnet-4-5";
   const apiKey = profile?.anthropic_api_key ?? "";
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
 
@@ -371,21 +372,11 @@ function AssistantThread() {
             </Popover>
 
             <div className="ml-auto flex items-center gap-2">
-              <Select
+              <GroupedModelSelect
+                size="sm"
                 value={modelId}
                 onValueChange={(v) => updateProfile.mutate({ ai_model: v })}
-              >
-                <SelectTrigger className="h-7 w-[180px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODEL_CHOICES.map((m) => (
-                    <SelectItem key={m.id} value={m.id} className="text-xs">
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <Button
                 type="submit"
                 size="icon"

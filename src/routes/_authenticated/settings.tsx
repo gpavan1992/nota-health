@@ -64,6 +64,13 @@ import {
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/use-profile";
+import { GroupedModelSelect } from "@/components/grouped-model-select";
+import { McpConnectorDialog, type McpConnector } from "@/components/mcp-connector-dialog";
+import { ProviderMark } from "@/components/provider-mark";
+import { findModel } from "@/lib/model-catalog";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil, Server, Trash2 as TrashIcon, Plus as PlusIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -78,14 +85,9 @@ const ROLES = [
   { value: "patient_advocate", label: "Patient Advocate" },
 ] as const;
 
-const MODELS = [
-  { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet — best clinical reasoning" },
-  { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku — fast, low cost" },
-  { value: "gpt-4o", label: "GPT-4o — strong general model" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini — economical" },
-  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro — long context" },
-  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash — fastest" },
-] as const;
+// Model list now lives in `@/lib/model-catalog` and is grouped by provider
+// (Anthropic / OpenAI / Google Gemini). We keep a legacy label map here only
+// for the "current selection" summary text.
 
 type Preferences = {
   drug_interactions: boolean;
@@ -164,7 +166,7 @@ function SettingsPage() {
               <ApiKeysTab userId={user.id} profile={profile} />
             </TabsContent>
             <TabsContent value="connectors">
-              <ConnectorsTab />
+              <ConnectorsTab userId={user.id} />
             </TabsContent>
           </Tabs>
         )}
@@ -982,40 +984,24 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
       <CardHeader>
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
-          Choose which model powers each Nota Health workflow.
+          Choose which model powers each Nota Health workflow. Models are grouped
+          by provider — Anthropic, OpenAI, and Google Gemini.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSave} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="primary-model">Primary model — Clinical Assistant</Label>
-            <Select value={primary} onValueChange={setPrimary}>
-              <SelectTrigger id="primary-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GroupedModelSelect id="primary-model" value={primary} onValueChange={setPrimary} showHint />
           </div>
           <div className="space-y-2">
             <Label htmlFor="secondary-model">Secondary model — Clinical Extractions</Label>
-            <Select value={secondary} onValueChange={setSecondary}>
-              <SelectTrigger id="secondary-model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODELS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GroupedModelSelect
+              id="secondary-model"
+              value={secondary}
+              onValueChange={setSecondary}
+              showHint
+            />
           </div>
 
           <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
@@ -1166,24 +1152,142 @@ function ApiKeyCard({
 
 /* ------------------------------ Connectors ------------------------------ */
 
-function ConnectorsTab() {
+function ConnectorsTab({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<McpConnector | null>(null);
+
+  const { data: connectors = [], isLoading } = useQuery({
+    queryKey: ["mcp-connectors", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mcp_connectors")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as McpConnector[];
+    },
+  });
+
+  async function toggle(row: McpConnector) {
+    const { error } = await supabase
+      .from("mcp_connectors")
+      .update({ enabled: !row.enabled })
+      .eq("id", row.id);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["mcp-connectors", userId] });
+  }
+
+  async function remove(row: McpConnector) {
+    if (!confirm(`Remove "${row.label}"?`)) return;
+    const { error } = await supabase.from("mcp_connectors").delete().eq("id", row.id);
+    if (error) return toast.error(error.message);
+    toast.success("Connector removed");
+    qc.invalidateQueries({ queryKey: ["mcp-connectors", userId] });
+  }
+
+  function openAdd() {
+    setEditing(null);
+    setDialogOpen(true);
+  }
+  function openEdit(row: McpConnector) {
+    setEditing(row);
+    setDialogOpen(true);
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connectors</CardTitle>
-        <CardDescription>Bring Nota Health into your existing systems.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">
-          <Plug className="mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">
-            EHR and health system integrations coming soon.
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We are working with Epic, Cerner, and FHIR-compatible partners.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-4 w-4 text-primary" />
+              MCP connectors
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Nota Health is an MCP-compatible client. Connect any healthcare MCP
+              server — FHIR bridges, clinical knowledge bases, lab integrations —
+              and its tools become available to the Clinical Assistant.
+            </CardDescription>
+          </div>
+          <Button onClick={openAdd} size="sm" className="rounded-full">
+            <PlusIcon className="mr-1 h-4 w-4" />
+            Add MCP connector
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : connectors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-10 text-center">
+              <Plug className="mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                No MCP connectors yet.
+              </p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                Bring your own MCP server URL and bearer token. The assistant will
+                automatically use its tools during a conversation.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {connectors.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {c.label}
+                      </p>
+                      <Badge variant={c.enabled ? "default" : "secondary"} className="h-5 text-[10px]">
+                        {c.enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                    <p className="truncate font-mono text-xs text-muted-foreground">
+                      {c.url}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Switch
+                      checked={c.enabled}
+                      onCheckedChange={() => toggle(c)}
+                      aria-label={c.enabled ? "Disable connector" : "Enable connector"}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEdit(c)}
+                      aria-label="Edit connector"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove(c)}
+                      aria-label="Remove connector"
+                    >
+                      <TrashIcon className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <McpConnectorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        userId={userId}
+        existing={editing}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["mcp-connectors", userId] })}
+      />
+    </div>
   );
 }

@@ -7,17 +7,34 @@ export interface WireMessage {
   content: string;
 }
 
-export const MODEL_CHOICES = [
-  { id: "claude-sonnet", label: "Claude Sonnet (recommended)", provider: "anthropic", model: "claude-sonnet-4-5" },
-  { id: "claude-haiku", label: "Claude Haiku", provider: "anthropic", model: "claude-haiku-4-5" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "openai", model: "gpt-4o" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai", model: "gpt-4o-mini" },
-] as const;
+import { findModel, ALL_MODELS } from "./model-catalog";
 
-export type ModelId = (typeof MODEL_CHOICES)[number]["id"];
+export const MODEL_CHOICES = ALL_MODELS.map((m) => ({
+  id: m.value,
+  label: m.label,
+  provider: (findModel(m.value)?.group.id ?? "anthropic") as "anthropic" | "openai" | "google",
+  model: m.apiModel,
+}));
+
+export type ModelId = string;
 
 export function getModelChoice(id: string) {
-  return MODEL_CHOICES.find((m) => m.id === id) ?? MODEL_CHOICES[0];
+  const found = findModel(id);
+  if (found) {
+    return {
+      id: found.model.value,
+      label: found.model.label,
+      provider: found.group.id as "anthropic" | "openai" | "google",
+      model: found.model.apiModel,
+    };
+  }
+  // Fallback so old profile values still resolve.
+  return {
+    id: "claude-sonnet-4-5",
+    label: "Claude Sonnet 4.5",
+    provider: "anthropic" as const,
+    model: "claude-sonnet-4-5",
+  };
 }
 
 export const CLINICAL_SYSTEM_PROMPT = `You are Nota Health, a clinical documentation assistant for healthcare professionals.
@@ -43,7 +60,14 @@ export async function streamChat({ apiKey, modelId, messages, onToken, signal }:
   if (choice.provider === "anthropic") {
     return streamAnthropic({ apiKey, model: choice.model, messages, onToken, signal });
   }
-  return streamOpenAI({ apiKey, model: choice.model, messages, onToken, signal });
+  if (choice.provider === "openai") {
+    return streamOpenAI({ apiKey, model: choice.model, messages, onToken, signal });
+  }
+  // Gemini streaming isn't wired to a BYOK path yet — surface a clear error
+  // instead of silently failing so the user knows to pick Anthropic or OpenAI.
+  throw new Error(
+    "Google Gemini is not yet wired to bring-your-own-key. Pick an Anthropic or OpenAI model, or add a Gemini adapter.",
+  );
 }
 
 async function streamAnthropic({

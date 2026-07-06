@@ -263,6 +263,42 @@ export type Database = {
           },
         ]
       }
+      mcp_connectors: {
+        Row: {
+          bearer_token: string | null
+          created_at: string
+          enabled: boolean
+          headers: Json
+          id: string
+          label: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          bearer_token?: string | null
+          created_at?: string
+          enabled?: boolean
+          headers?: Json
+          id?: string
+          label: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          bearer_token?: string | null
+          created_at?: string
+          enabled?: boolean
+          headers?: Json
+          id?: string
+          label?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_model: string
