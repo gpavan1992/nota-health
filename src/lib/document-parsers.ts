@@ -80,6 +80,7 @@ async function parsePdf(file: File): Promise<string> {
 }
 
 async function parseDocx(file: File): Promise<string> {
+  // @ts-expect-error - no types for browser entry
   const mammoth = await import("mammoth/mammoth.browser");
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer: buf });
