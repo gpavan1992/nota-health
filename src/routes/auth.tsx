@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { NotaLogo } from "@/components/nota-logo";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -37,11 +37,8 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2 text-foreground">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Stethoscope className="h-4 w-4" />
-          </span>
-          <span className="text-xl font-semibold tracking-tight">Nota</span>
+        <Link to="/" className="mb-8 flex items-center justify-center text-foreground">
+          <NotaLogo size="lg" />
         </Link>
         <Card>
           <CardHeader>
