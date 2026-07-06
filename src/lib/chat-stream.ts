@@ -60,7 +60,14 @@ export async function streamChat({ apiKey, modelId, messages, onToken, signal }:
   if (choice.provider === "anthropic") {
     return streamAnthropic({ apiKey, model: choice.model, messages, onToken, signal });
   }
-  return streamOpenAI({ apiKey, model: choice.model, messages, onToken, signal });
+  if (choice.provider === "openai") {
+    return streamOpenAI({ apiKey, model: choice.model, messages, onToken, signal });
+  }
+  // Gemini streaming isn't wired to a BYOK path yet — surface a clear error
+  // instead of silently failing so the user knows to pick Anthropic or OpenAI.
+  throw new Error(
+    "Google Gemini is not yet wired to bring-your-own-key. Pick an Anthropic or OpenAI model, or add a Gemini adapter.",
+  );
 }
 
 async function streamAnthropic({
