@@ -1,21 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotaLogo } from "@/components/nota-logo";
 
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur">
+    <header className="border-b border-border/70 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 text-foreground">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Stethoscope className="h-4 w-4" />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Nota</span>
+        <Link to="/" className="text-foreground">
+          <NotaLogo size="md" />
         </Link>
         <nav className="flex items-center gap-2">
           {signedIn ? (
             <Button asChild size="sm">
-              <Link to="/dashboard">Open dashboard</Link>
+              <Link to="/assistant">Open Nota</Link>
             </Button>
           ) : (
             <>
