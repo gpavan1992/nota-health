@@ -21,6 +21,15 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedExtractIndexRouteImport } from './routes/_authenticated/extract.index'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedAssistantIndexRouteImport } from './routes/_authenticated/assistant.index'
+import { Route as ApiToolsPubmedRouteImport } from './routes/api/tools/pubmed'
+import { Route as ApiToolsProviderRouteImport } from './routes/api/tools/provider'
+import { Route as ApiToolsInteractionsRouteImport } from './routes/api/tools/interactions'
+import { Route as ApiToolsIcdRouteImport } from './routes/api/tools/icd'
+import { Route as ApiToolsDrugRouteImport } from './routes/api/tools/drug'
+import { Route as AuthenticatedToolsPubmedRouteImport } from './routes/_authenticated/tools.pubmed'
+import { Route as AuthenticatedToolsProviderRouteImport } from './routes/_authenticated/tools.provider'
+import { Route as AuthenticatedToolsIcdRouteImport } from './routes/_authenticated/tools.icd'
+import { Route as AuthenticatedToolsDrugRouteImport } from './routes/_authenticated/tools.drug'
 import { Route as AuthenticatedExtractExtractionIdRouteImport } from './routes/_authenticated/extract.$extractionId'
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases.$caseId'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
@@ -86,6 +95,53 @@ const AuthenticatedAssistantIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAssistantRoute,
   } as any)
+const ApiToolsPubmedRoute = ApiToolsPubmedRouteImport.update({
+  id: '/api/tools/pubmed',
+  path: '/api/tools/pubmed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiToolsProviderRoute = ApiToolsProviderRouteImport.update({
+  id: '/api/tools/provider',
+  path: '/api/tools/provider',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiToolsInteractionsRoute = ApiToolsInteractionsRouteImport.update({
+  id: '/api/tools/interactions',
+  path: '/api/tools/interactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiToolsIcdRoute = ApiToolsIcdRouteImport.update({
+  id: '/api/tools/icd',
+  path: '/api/tools/icd',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiToolsDrugRoute = ApiToolsDrugRouteImport.update({
+  id: '/api/tools/drug',
+  path: '/api/tools/drug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedToolsPubmedRoute =
+  AuthenticatedToolsPubmedRouteImport.update({
+    id: '/tools/pubmed',
+    path: '/tools/pubmed',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedToolsProviderRoute =
+  AuthenticatedToolsProviderRouteImport.update({
+    id: '/tools/provider',
+    path: '/tools/provider',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedToolsIcdRoute = AuthenticatedToolsIcdRouteImport.update({
+  id: '/tools/icd',
+  path: '/tools/icd',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedToolsDrugRoute = AuthenticatedToolsDrugRouteImport.update({
+  id: '/tools/drug',
+  path: '/tools/drug',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedExtractExtractionIdRoute =
   AuthenticatedExtractExtractionIdRouteImport.update({
     id: '/$extractionId',
@@ -117,6 +173,15 @@ export interface FileRoutesByFullPath {
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/tools/drug': typeof AuthenticatedToolsDrugRoute
+  '/tools/icd': typeof AuthenticatedToolsIcdRoute
+  '/tools/provider': typeof AuthenticatedToolsProviderRoute
+  '/tools/pubmed': typeof AuthenticatedToolsPubmedRoute
+  '/api/tools/drug': typeof ApiToolsDrugRoute
+  '/api/tools/icd': typeof ApiToolsIcdRoute
+  '/api/tools/interactions': typeof ApiToolsInteractionsRoute
+  '/api/tools/provider': typeof ApiToolsProviderRoute
+  '/api/tools/pubmed': typeof ApiToolsPubmedRoute
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/cases/': typeof AuthenticatedCasesIndexRoute
   '/extract/': typeof AuthenticatedExtractIndexRoute
@@ -130,6 +195,15 @@ export interface FileRoutesByTo {
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/tools/drug': typeof AuthenticatedToolsDrugRoute
+  '/tools/icd': typeof AuthenticatedToolsIcdRoute
+  '/tools/provider': typeof AuthenticatedToolsProviderRoute
+  '/tools/pubmed': typeof AuthenticatedToolsPubmedRoute
+  '/api/tools/drug': typeof ApiToolsDrugRoute
+  '/api/tools/icd': typeof ApiToolsIcdRoute
+  '/api/tools/interactions': typeof ApiToolsInteractionsRoute
+  '/api/tools/provider': typeof ApiToolsProviderRoute
+  '/api/tools/pubmed': typeof ApiToolsPubmedRoute
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/cases': typeof AuthenticatedCasesIndexRoute
   '/extract': typeof AuthenticatedExtractIndexRoute
@@ -148,6 +222,15 @@ export interface FileRoutesById {
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/_authenticated/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/_authenticated/tools/drug': typeof AuthenticatedToolsDrugRoute
+  '/_authenticated/tools/icd': typeof AuthenticatedToolsIcdRoute
+  '/_authenticated/tools/provider': typeof AuthenticatedToolsProviderRoute
+  '/_authenticated/tools/pubmed': typeof AuthenticatedToolsPubmedRoute
+  '/api/tools/drug': typeof ApiToolsDrugRoute
+  '/api/tools/icd': typeof ApiToolsIcdRoute
+  '/api/tools/interactions': typeof ApiToolsInteractionsRoute
+  '/api/tools/provider': typeof ApiToolsProviderRoute
+  '/api/tools/pubmed': typeof ApiToolsPubmedRoute
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
   '/_authenticated/extract/': typeof AuthenticatedExtractIndexRoute
@@ -166,6 +249,15 @@ export interface FileRouteTypes {
     | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/extract/$extractionId'
+    | '/tools/drug'
+    | '/tools/icd'
+    | '/tools/provider'
+    | '/tools/pubmed'
+    | '/api/tools/drug'
+    | '/api/tools/icd'
+    | '/api/tools/interactions'
+    | '/api/tools/provider'
+    | '/api/tools/pubmed'
     | '/assistant/'
     | '/cases/'
     | '/extract/'
@@ -179,6 +271,15 @@ export interface FileRouteTypes {
     | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/extract/$extractionId'
+    | '/tools/drug'
+    | '/tools/icd'
+    | '/tools/provider'
+    | '/tools/pubmed'
+    | '/api/tools/drug'
+    | '/api/tools/icd'
+    | '/api/tools/interactions'
+    | '/api/tools/provider'
+    | '/api/tools/pubmed'
     | '/assistant'
     | '/cases'
     | '/extract'
@@ -196,6 +297,15 @@ export interface FileRouteTypes {
     | '/_authenticated/assistant/$threadId'
     | '/_authenticated/cases/$caseId'
     | '/_authenticated/extract/$extractionId'
+    | '/_authenticated/tools/drug'
+    | '/_authenticated/tools/icd'
+    | '/_authenticated/tools/provider'
+    | '/_authenticated/tools/pubmed'
+    | '/api/tools/drug'
+    | '/api/tools/icd'
+    | '/api/tools/interactions'
+    | '/api/tools/provider'
+    | '/api/tools/pubmed'
     | '/_authenticated/assistant/'
     | '/_authenticated/cases/'
     | '/_authenticated/extract/'
@@ -205,6 +315,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiToolsDrugRoute: typeof ApiToolsDrugRoute
+  ApiToolsIcdRoute: typeof ApiToolsIcdRoute
+  ApiToolsInteractionsRoute: typeof ApiToolsInteractionsRoute
+  ApiToolsProviderRoute: typeof ApiToolsProviderRoute
+  ApiToolsPubmedRoute: typeof ApiToolsPubmedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,6 +408,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistantIndexRouteImport
       parentRoute: typeof AuthenticatedAssistantRoute
     }
+    '/api/tools/pubmed': {
+      id: '/api/tools/pubmed'
+      path: '/api/tools/pubmed'
+      fullPath: '/api/tools/pubmed'
+      preLoaderRoute: typeof ApiToolsPubmedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tools/provider': {
+      id: '/api/tools/provider'
+      path: '/api/tools/provider'
+      fullPath: '/api/tools/provider'
+      preLoaderRoute: typeof ApiToolsProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tools/interactions': {
+      id: '/api/tools/interactions'
+      path: '/api/tools/interactions'
+      fullPath: '/api/tools/interactions'
+      preLoaderRoute: typeof ApiToolsInteractionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tools/icd': {
+      id: '/api/tools/icd'
+      path: '/api/tools/icd'
+      fullPath: '/api/tools/icd'
+      preLoaderRoute: typeof ApiToolsIcdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tools/drug': {
+      id: '/api/tools/drug'
+      path: '/api/tools/drug'
+      fullPath: '/api/tools/drug'
+      preLoaderRoute: typeof ApiToolsDrugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tools/pubmed': {
+      id: '/_authenticated/tools/pubmed'
+      path: '/tools/pubmed'
+      fullPath: '/tools/pubmed'
+      preLoaderRoute: typeof AuthenticatedToolsPubmedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tools/provider': {
+      id: '/_authenticated/tools/provider'
+      path: '/tools/provider'
+      fullPath: '/tools/provider'
+      preLoaderRoute: typeof AuthenticatedToolsProviderRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tools/icd': {
+      id: '/_authenticated/tools/icd'
+      path: '/tools/icd'
+      fullPath: '/tools/icd'
+      preLoaderRoute: typeof AuthenticatedToolsIcdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tools/drug': {
+      id: '/_authenticated/tools/drug'
+      path: '/tools/drug'
+      fullPath: '/tools/drug'
+      preLoaderRoute: typeof AuthenticatedToolsDrugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/extract/$extractionId': {
       id: '/_authenticated/extract/$extractionId'
       path: '/$extractionId'
@@ -366,6 +544,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedExtractRoute: typeof AuthenticatedExtractRouteWithChildren
   AuthenticatedProtocolsRoute: typeof AuthenticatedProtocolsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedToolsDrugRoute: typeof AuthenticatedToolsDrugRoute
+  AuthenticatedToolsIcdRoute: typeof AuthenticatedToolsIcdRoute
+  AuthenticatedToolsProviderRoute: typeof AuthenticatedToolsProviderRoute
+  AuthenticatedToolsPubmedRoute: typeof AuthenticatedToolsPubmedRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -375,6 +557,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedExtractRoute: AuthenticatedExtractRouteWithChildren,
   AuthenticatedProtocolsRoute: AuthenticatedProtocolsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedToolsDrugRoute: AuthenticatedToolsDrugRoute,
+  AuthenticatedToolsIcdRoute: AuthenticatedToolsIcdRoute,
+  AuthenticatedToolsProviderRoute: AuthenticatedToolsProviderRoute,
+  AuthenticatedToolsPubmedRoute: AuthenticatedToolsPubmedRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -384,6 +570,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiToolsDrugRoute: ApiToolsDrugRoute,
+  ApiToolsIcdRoute: ApiToolsIcdRoute,
+  ApiToolsInteractionsRoute: ApiToolsInteractionsRoute,
+  ApiToolsProviderRoute: ApiToolsProviderRoute,
+  ApiToolsPubmedRoute: ApiToolsPubmedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

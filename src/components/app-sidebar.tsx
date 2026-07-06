@@ -8,6 +8,10 @@ import {
   FileText,
   Plus,
   MessageCircle,
+  Pill,
+  BookOpen,
+  UserRound,
+  Hash,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +38,14 @@ const NAV = [
   { title: "Clinical Extract", to: "/extract", icon: FileSearch },
   { title: "Protocols", to: "/protocols", icon: BookMarked },
 ] as const;
+
+const TOOLS = [
+  { title: "Drug Database", to: "/tools/drug", icon: Pill },
+  { title: "Medical Literature", to: "/tools/pubmed", icon: BookOpen },
+  { title: "Provider Verification", to: "/tools/provider", icon: UserRound },
+  { title: "ICD Code Lookup", to: "/tools/icd", icon: Hash },
+] as const;
+
 
 function useRecentCases(userId: string | undefined) {
   return useQuery({
@@ -142,6 +154,36 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
+            Clinical Tools
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {TOOLS.map((item) => {
+                const active =
+                  pathname === item.to || pathname.startsWith(item.to + "/");
+                return (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                    >
+                      <Link to={item.to}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+
 
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
