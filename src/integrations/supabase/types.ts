@@ -266,31 +266,49 @@ export type Database = {
       profiles: {
         Row: {
           ai_model: string
+          ai_model_secondary: string | null
           anthropic_api_key: string | null
+          auto_signout_hours: number
+          avatar_url: string | null
           created_at: string
           full_name: string | null
+          google_api_key: string | null
           id: string
+          openai_api_key: string | null
           organization: string | null
+          preferences: Json
           role: string | null
           updated_at: string
         }
         Insert: {
           ai_model?: string
+          ai_model_secondary?: string | null
           anthropic_api_key?: string | null
+          auto_signout_hours?: number
+          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          google_api_key?: string | null
           id: string
+          openai_api_key?: string | null
           organization?: string | null
+          preferences?: Json
           role?: string | null
           updated_at?: string
         }
         Update: {
           ai_model?: string
+          ai_model_secondary?: string | null
           anthropic_api_key?: string | null
+          auto_signout_hours?: number
+          avatar_url?: string | null
           created_at?: string
           full_name?: string | null
+          google_api_key?: string | null
           id?: string
+          openai_api_key?: string | null
           organization?: string | null
+          preferences?: Json
           role?: string | null
           updated_at?: string
         }
