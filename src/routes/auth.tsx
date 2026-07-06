@@ -184,8 +184,6 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         </Button>
       </form>
 
-      <TrustSignalRow className="mt-6" />
-
       <p className="mt-6 text-center text-sm text-muted-foreground">
         New to Nota?{" "}
         <button
