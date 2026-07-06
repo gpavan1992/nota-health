@@ -104,7 +104,7 @@ export function CreateExtractionDialog({
         case_id: linkCase && caseId ? caseId : null,
         source_documents: docs.map((d) => ({ name: d.name })),
         status: "processing",
-        columns: proto.columns,
+        columns: proto.columns as unknown as never,
         rows: [],
       })
       .select()
@@ -119,7 +119,7 @@ export function CreateExtractionDialog({
         apiKey: profile.anthropic_api_key,
         modelId: profile.ai_model ?? "claude-sonnet",
         protocolName: proto.name,
-        columns: proto.columns,
+        columns: proto.columns as unknown as never,
         customInstruction: protocolId === "custom" ? customInstruction : undefined,
         documents: docs.filter((d) => d.text.trim().length > 0),
       });
@@ -127,8 +127,8 @@ export function CreateExtractionDialog({
         .from("extractions")
         .update({
           status: "ready",
-          columns: result.columns,
-          rows: result.rows,
+          columns: result.columns as unknown as never,
+          rows: result.rows as unknown as never,
         })
         .eq("id", inserted.id);
       toast.success("Extraction ready");
