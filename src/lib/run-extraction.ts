@@ -64,11 +64,11 @@ ${docsBlock}`;
   if (!parsed || !Array.isArray(parsed.rows) || !Array.isArray(parsed.columns)) {
     throw new Error("AI did not return valid extraction JSON.");
   }
-  const columns: ProtocolColumn[] = parsed.columns.map((c: { key: string; label: string }) => ({
+  const columns: ProtocolColumn[] = (parsed.columns as Array<{ key: string; label: string }>).map((c) => ({
     key: String(c.key),
     label: String(c.label),
   }));
-  const rows: Record<string, string>[] = parsed.rows.map((r: Record<string, unknown>) => {
+  const rows: Record<string, string>[] = (parsed.rows as Array<Record<string, unknown>>).map((r) => {
     const out: Record<string, string> = {};
     for (const col of columns) {
       const v = r?.[col.key];
