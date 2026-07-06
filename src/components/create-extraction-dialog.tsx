@@ -69,17 +69,33 @@ export function CreateExtractionDialog({
   }, [open, initialProtocol]);
 
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
-    for (const f of Array.from(files)) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setDocs((d) => [...d, { name: f.name, text: String(reader.result ?? "").slice(0, 50000) }]);
-      };
-      reader.readAsText(f);
-    }
+    const list = Array.from(files);
     e.target.value = "";
+    // Add placeholders immediately so the UI shows progress
+    setDocs((d) => [...d, ...list.map((f) => ({ name: f.name, text: "", parsing: true }))]);
+    for (const f of list) {
+      try {
+        const parsed = await parseFile(f);
+        setDocs((d) =>
+          d.map((doc) =>
+            doc.name === f.name && doc.parsing ? { ...parsed, parsing: false } : doc,
+          ),
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to parse";
+        toast.error(msg);
+        setDocs((d) =>
+          d.map((doc) =>
+            doc.name === f.name && doc.parsing
+              ? { name: f.name, text: "", parsing: false, error: msg }
+              : doc,
+          ),
+        );
+      }
+    }
   }
 
   async function loadCaseDocs() {
