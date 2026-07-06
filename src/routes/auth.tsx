@@ -478,34 +478,139 @@ function TrustSignalRow({ className = "" }: { className?: string }) {
   );
 }
 
-/* ---------- Compliance badges (bottom of left panel) ---------- */
+/* ---------- Compliance badges (shield-style, bottom of left panel) ---------- */
 
-const COMPLIANCE_BADGES = [
-  { icon: Hospital, label: "HIPAA Architected" },
-  { icon: Lock, label: "AES-256 Encrypted" },
-  { icon: Award, label: "AGPL-3.0" },
-  { icon: Server, label: "Self-Hostable" },
-  { icon: Database, label: "Row-Level Security" },
-  { icon: ShieldCheck, label: "SOC 2 Roadmap" },
+type ShieldBadge = {
+  label: string;
+  sub: string;
+  tone: "primary" | "accent" | "neutral";
+  icon: typeof Hospital;
+};
+
+const COMPLIANCE_BADGES: ShieldBadge[] = [
+  { label: "HIPAA", sub: "Architected", tone: "primary", icon: Hospital },
+  { label: "AES-256", sub: "Encrypted", tone: "accent", icon: Lock },
+  { label: "AGPL-3.0", sub: "Open Source", tone: "neutral", icon: Award },
+  { label: "RLS", sub: "Row-Level Security", tone: "primary", icon: Database },
+  { label: "Self-Host", sub: "Deployable", tone: "accent", icon: Server },
+  { label: "SOC 2", sub: "Roadmap", tone: "neutral", icon: ShieldCheck },
 ];
 
-function ComplianceBadgeRow() {
+function ComplianceShield({ b }: { b: ShieldBadge }) {
+  const toneMap = {
+    primary: "from-primary/15 to-primary/5 border-primary/30 text-primary",
+    accent: "from-foreground/10 to-foreground/[0.02] border-foreground/20 text-foreground",
+    neutral: "from-muted to-transparent border-border text-muted-foreground",
+  }[b.tone];
   return (
-    <div className="mt-8 flex flex-wrap items-center justify-center gap-2 pb-2">
-      {COMPLIANCE_BADGES.map((b) => (
-        <span
-          key={b.label}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.08em] text-muted-foreground"
-        >
-          <b.icon className="h-3 w-3 text-primary" />
+    <div className="flex flex-col items-center gap-1.5">
+      <div
+        className={
+          "relative flex h-14 w-12 items-center justify-center border bg-gradient-to-b " +
+          toneMap
+        }
+        style={{
+          clipPath:
+            "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
+        }}
+      >
+        <b.icon className="h-5 w-5" strokeWidth={2} />
+      </div>
+      <div className="text-center leading-tight">
+        <div className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-foreground">
           {b.label}
-        </span>
-      ))}
+        </div>
+        <div className="text-[0.58rem] uppercase tracking-[0.08em] text-muted-foreground">
+          {b.sub}
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ---------- Right panel: social proof wall ---------- */
+function ComplianceBadgeRow() {
+  return (
+    <div className="mt-8 border-t border-border pt-6 pb-2">
+      <p className="mb-4 text-center text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        Security & Compliance
+      </p>
+      <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-4">
+        {COMPLIANCE_BADGES.map((b) => (
+          <ComplianceShield key={b.label} b={b} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Right panel: animated prompt + social proof ---------- */
+
+const ROTATING_PROMPTS = [
+  "Summarize this discharge summary for the primary care team…",
+  "Draft a prior authorization for semaglutide 1 mg weekly…",
+  "Check interactions between warfarin, amiodarone, and fluconazole…",
+  "Extract ICD-11 codes from this progress note…",
+  "Find recent PubMed evidence on SGLT2 inhibitors in HFpEF…",
+  "Verify NPI 1235398476 and license status…",
+];
+
+function AnimatedPromptCard() {
+  const [promptIdx, setPromptIdx] = useState(0);
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    const full = ROTATING_PROMPTS[promptIdx];
+    let i = 0;
+    setTyped("");
+    const typer = setInterval(() => {
+      i++;
+      setTyped(full.slice(0, i));
+      if (i >= full.length) clearInterval(typer);
+    }, 28);
+    const next = setTimeout(
+      () => setPromptIdx((p) => (p + 1) % ROTATING_PROMPTS.length),
+      full.length * 28 + 2200,
+    );
+    return () => {
+      clearInterval(typer);
+      clearTimeout(next);
+    };
+  }, [promptIdx]);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl backdrop-blur-md">
+      <div className="mb-3 flex items-center gap-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] text-sidebar-foreground/60">
+        <Sparkles className="h-3 w-3 text-primary" />
+        Clinical Assistant
+      </div>
+      <div className="flex items-end gap-3 rounded-xl border border-white/10 bg-sidebar/60 p-3">
+        <div className="min-h-[3.5rem] flex-1 text-sm leading-relaxed text-sidebar-foreground">
+          {typed}
+          <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-primary align-middle" />
+        </div>
+        <button
+          type="button"
+          aria-label="Send"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {["Summarize", "Prior Auth", "Interactions", "ICD-11", "PubMed"].map(
+          (chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[0.68rem] text-sidebar-foreground/70"
+            >
+              {chip}
+            </span>
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
 
 type StatCard = {
   stat?: string;
@@ -517,69 +622,45 @@ type StatCard = {
 const STATS: StatCard[] = [
   {
     stat: "49%",
-    body: "Physicians spend 49% of their time on administrative tasks. Only 27% with patients.",
+    body: "Physicians spend 49% of their time on admin. Only 27% with patients.",
     source: "NEJM Catalyst",
   },
   {
+    stat: "15.6h",
+    body: "Clinicians spend 15.6 hours per week on documentation.",
+    source: "Annals of Internal Medicine",
+  },
+  {
     stat: "$19.7B",
-    body: "Prior authorization denials cost US hospitals $19.7 billion annually.",
+    body: "Prior authorization denials cost US hospitals $19.7B annually.",
     source: "AMA, 2023",
   },
   {
     stat: "1 in 5",
-    body: "1 in 5 prior authorization requests are initially denied. 75% of those are eventually approved on appeal.",
+    body: "1 in 5 prior authorizations are initially denied. 75% approved on appeal.",
     source: "KFF",
-  },
-  {
-    stat: "45 min",
-    body: "The average discharge summary takes 45 minutes to write. 60% are never read by the receiving provider.",
-    source: "JAMA",
-  },
-  {
-    stat: "70%",
-    body: "Hospital documentation errors contribute to 70% of adverse medical events.",
-    source: "WHO Patient Safety Report",
-  },
-  {
-    stat: "15.6 hrs",
-    body: "US clinicians spend an average of 15.6 hours per week on documentation.",
-    source: "Annals of Internal Medicine",
-  },
-  {
-    title: "Reads any clinical document",
-    body: "Nota reads, extracts, and summarizes any clinical document in seconds.",
-  },
-  {
-    title: "Clinical intelligence built in",
-    body: "Drug interactions, PubMed citations, provider verification, ICD codes.",
-  },
-  {
-    title: "Your data. Your keys.",
-    body: "Your documents never leave your storage. Your AI key is yours.",
-  },
-  {
-    title: "Built for healthcare teams",
-    body: "Open source. Auditable. Self-hostable. Built for healthcare teams.",
   },
 ];
 
 function SocialProofPanel() {
   return (
-    <div className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground lg:block">
+    <div className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground md:block">
       <EcgBackdrop />
-      <div className="relative flex h-full flex-col p-10 xl:p-14">
-        <div className="mb-8">
+      <div className="relative flex h-full flex-col justify-between gap-8 p-8 lg:p-12 xl:p-14">
+        <div>
           <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-sidebar-foreground/60">
             Why Nota
           </p>
-          <h2 className="mt-2 max-w-md font-serif text-2xl font-medium leading-snug tracking-tight text-sidebar-foreground">
+          <h2 className="mt-2 max-w-md font-serif text-2xl font-medium leading-snug tracking-tight text-sidebar-foreground xl:text-3xl">
             Clinical documentation is broken. Nota is the layer that fixes it.
           </h2>
         </div>
 
-        <div className="grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto pr-1 xl:gap-4">
+        <AnimatedPromptCard />
+
+        <div className="grid grid-cols-2 gap-3 xl:gap-4">
           {STATS.map((s, i) => (
-            <StatTile key={i} card={s} large={i === 0 || i === 1} />
+            <StatTile key={i} card={s} />
           ))}
         </div>
       </div>
@@ -587,28 +668,23 @@ function SocialProofPanel() {
   );
 }
 
-function StatTile({ card, large }: { card: StatCard; large?: boolean }) {
+function StatTile({ card }: { card: StatCard }) {
   return (
-    <div
-      className={
-        "rounded-lg border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm " +
-        (large ? "col-span-2" : "")
-      }
-    >
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
       {card.stat ? (
-        <div className="font-serif text-4xl font-semibold tracking-tight text-primary xl:text-5xl">
+        <div className="font-serif text-3xl font-semibold tracking-tight text-primary xl:text-4xl">
           {card.stat}
         </div>
       ) : (
-        <div className="font-serif text-lg font-medium text-sidebar-foreground">
+        <div className="font-serif text-base font-medium text-sidebar-foreground">
           {card.title}
         </div>
       )}
-      <p className="mt-2 text-sm leading-relaxed text-sidebar-foreground/80">
+      <p className="mt-1.5 text-xs leading-relaxed text-sidebar-foreground/80 xl:text-sm">
         {card.body}
       </p>
       {card.source && (
-        <p className="mt-2 text-[0.68rem] uppercase tracking-[0.14em] text-sidebar-foreground/50">
+        <p className="mt-2 text-[0.62rem] uppercase tracking-[0.14em] text-sidebar-foreground/50">
           — {card.source}
         </p>
       )}
