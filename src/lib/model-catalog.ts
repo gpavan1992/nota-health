@@ -32,30 +32,24 @@ export const MODEL_GROUPS: ProviderGroup[] = [
     ring: "ring-[#C15F3C]/25",
     bg: "bg-[#C15F3C]/10",
     models: [
-      {
-        value: "claude-sonnet-4-5",
-        label: "Claude Sonnet 4.5",
-        hint: "Best clinical reasoning",
-        apiModel: "claude-sonnet-4-5",
-      },
-      {
-        value: "claude-haiku-4-5",
-        label: "Claude Haiku 4.5",
-        hint: "Fast, low cost",
-        apiModel: "claude-haiku-4-5",
-      },
-      {
-        value: "claude-3-5-sonnet-latest",
-        label: "Claude 3.5 Sonnet",
-        hint: "Long-form reasoning",
-        apiModel: "claude-3-5-sonnet-latest",
-      },
-      {
-        value: "claude-3-5-haiku-latest",
-        label: "Claude 3.5 Haiku",
-        hint: "Economical",
-        apiModel: "claude-3-5-haiku-latest",
-      },
+      { value: "claude-fable-5", label: "Claude Fable 5", apiModel: "claude-fable-5" },
+      { value: "claude-opus-4-8", label: "Claude Opus 4.8", apiModel: "claude-opus-4-8" },
+      { value: "claude-opus-4-7", label: "Claude Opus 4.7", apiModel: "claude-opus-4-7" },
+      { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", apiModel: "claude-sonnet-4-6" },
+      { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", apiModel: "claude-haiku-4-5" },
+    ],
+  },
+  {
+    id: "google",
+    label: "Google",
+    accent: "text-[#4285F4]",
+    ring: "ring-[#4285F4]/25",
+    bg: "bg-[#4285F4]/10",
+    models: [
+      { value: "gemini-3-5-flash", label: "Gemini 3.5 Flash", apiModel: "gemini-3-5-flash" },
+      { value: "gemini-3-1-pro", label: "Gemini 3.1 Pro", apiModel: "gemini-3-1-pro" },
+      { value: "gemini-3-flash", label: "Gemini 3 Flash", apiModel: "gemini-3-flash" },
+      { value: "gemini-3-1-flash-lite", label: "Gemini 3.1 Flash Lite", apiModel: "gemini-3-1-flash-lite" },
     ],
   },
   {
@@ -65,29 +59,9 @@ export const MODEL_GROUPS: ProviderGroup[] = [
     ring: "ring-[#10A37F]/25",
     bg: "bg-[#10A37F]/10",
     models: [
-      { value: "gpt-4o", label: "GPT-4o", hint: "Strong general model", apiModel: "gpt-4o" },
-      { value: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Economical", apiModel: "gpt-4o-mini" },
-    ],
-  },
-  {
-    id: "google",
-    label: "Google Gemini",
-    accent: "text-[#4285F4]",
-    ring: "ring-[#4285F4]/25",
-    bg: "bg-[#4285F4]/10",
-    models: [
-      {
-        value: "gemini-1.5-pro",
-        label: "Gemini 1.5 Pro",
-        hint: "Long context",
-        apiModel: "gemini-1.5-pro",
-      },
-      {
-        value: "gemini-1.5-flash",
-        label: "Gemini 1.5 Flash",
-        hint: "Fastest",
-        apiModel: "gemini-1.5-flash",
-      },
+      { value: "gpt-5-5", label: "GPT-5.5", apiModel: "gpt-5-5" },
+      { value: "gpt-5-4", label: "GPT-5.4", apiModel: "gpt-5-4" },
+      { value: "gpt-5-4-lite", label: "GPT-5.4 Lite", apiModel: "gpt-5-4-lite" },
     ],
   },
 ];
