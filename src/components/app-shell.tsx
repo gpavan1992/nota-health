@@ -68,7 +68,7 @@ export function AppShell({
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <KeyRound className="h-4 w-4 text-warning-foreground" />
                 <span>
-                  Add your Anthropic API key in Settings to activate the
+                  Add an AI provider API key in Settings to activate the
                   Clinical Assistant.
                 </span>
               </div>
