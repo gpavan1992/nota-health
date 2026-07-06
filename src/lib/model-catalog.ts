@@ -2,7 +2,7 @@
 // Used by the Settings > Models tab and the in-chat model picker so
 // both surfaces share a single, brand-themed list.
 
-export type ProviderId = "anthropic" | "openai" | "google";
+export type ProviderId = "anthropic" | "openai" | "google" | "ollama";
 
 export interface ModelOption {
   /** Value persisted on the profile / used at call time. */
@@ -62,6 +62,20 @@ export const MODEL_GROUPS: ProviderGroup[] = [
       { value: "gpt-5-5", label: "GPT-5.5", apiModel: "gpt-5-5" },
       { value: "gpt-5-4", label: "GPT-5.4", apiModel: "gpt-5-4" },
       { value: "gpt-5-4-lite", label: "GPT-5.4 Lite", apiModel: "gpt-5-4-lite" },
+    ],
+  },
+  {
+    id: "ollama",
+    label: "Ollama (Local)",
+    accent: "text-[#0EA5E9]",
+    ring: "ring-[#0EA5E9]/25",
+    bg: "bg-[#0EA5E9]/10",
+    models: [
+      { value: "ollama-llama3-1-8b", label: "Llama 3.1 8B", hint: "Runs locally — PHI stays on device", apiModel: "llama3.1:8b" },
+      { value: "ollama-llama3-1-70b", label: "Llama 3.1 70B", hint: "Higher quality, requires GPU", apiModel: "llama3.1:70b" },
+      { value: "ollama-meditron-7b", label: "Meditron 7B", hint: "Clinical fine-tune of Llama 2", apiModel: "meditron:7b" },
+      { value: "ollama-mistral-7b", label: "Mistral 7B", hint: "Fast general-purpose local model", apiModel: "mistral:7b" },
+      { value: "ollama-qwen2-5-7b", label: "Qwen 2.5 7B", hint: "Strong reasoning, local", apiModel: "qwen2.5:7b" },
     ],
   },
 ];
