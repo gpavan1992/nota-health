@@ -372,21 +372,11 @@ function AssistantThread() {
             </Popover>
 
             <div className="ml-auto flex items-center gap-2">
-              <Select
+              <GroupedModelSelect
+                size="sm"
                 value={modelId}
                 onValueChange={(v) => updateProfile.mutate({ ai_model: v })}
-              >
-                <SelectTrigger className="h-7 w-[180px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODEL_CHOICES.map((m) => (
-                    <SelectItem key={m.id} value={m.id} className="text-xs">
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <Button
                 type="submit"
                 size="icon"
