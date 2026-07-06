@@ -27,7 +27,7 @@ import { PROTOCOLS, getProtocol } from "@/lib/protocols";
 import { runExtraction } from "@/lib/run-extraction";
 import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
 
-type Doc = { name: string; text: string };
+type Doc = ParsedDoc & { parsing?: boolean; error?: string };
 
 export function CreateExtractionDialog({
   open,
