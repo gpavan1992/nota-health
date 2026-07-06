@@ -292,17 +292,13 @@ function SignInForm({
         New to Nota Health?{" "}
         <button
           type="button"
-          onClick={() => {
-            const t = document.querySelector<HTMLButtonElement>(
-              '[role="tab"][value="signup"]',
-            );
-            t?.click();
-          }}
+          onClick={onSwitchToSignUp}
           className="font-medium text-primary hover:underline"
         >
           Create an account
         </button>
       </p>
+
     </div>
   );
 }
