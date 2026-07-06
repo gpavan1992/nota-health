@@ -23,7 +23,14 @@ export function ProviderMark({
   const dim =
     size === "xs" ? "h-4 w-4 text-[9px]" : size === "md" ? "h-6 w-6 text-[11px]" : "h-5 w-5 text-[10px]";
 
-  const initial = group.id === "openai" ? "O" : group.id === "anthropic" ? "A" : "G";
+  const initial =
+    group.id === "openai"
+      ? "O"
+      : group.id === "anthropic"
+        ? "A"
+        : group.id === "google"
+          ? "G"
+          : "L";
 
   return (
     <span
