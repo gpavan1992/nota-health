@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate, useParams } from "@tanstack/react-router";
 import {
   MessageSquareText,
   FolderOpen,
@@ -6,6 +6,8 @@ import {
   BookMarked,
   Settings as SettingsIcon,
   FileText,
+  Plus,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
