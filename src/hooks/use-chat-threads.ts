@@ -40,11 +40,11 @@ export function useChatMessages(threadId: string | undefined) {
 
 export function useCreateThread(userId: string) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (title = "New conversation"): Promise<ChatThread> => {
+  return useMutation<ChatThread, Error, string | undefined>({
+    mutationFn: async (title) => {
       const { data, error } = await supabase
         .from("chat_threads")
-        .insert({ user_id: userId, title })
+        .insert({ user_id: userId, title: title ?? "New conversation" })
         .select()
         .single();
       if (error) throw error;
