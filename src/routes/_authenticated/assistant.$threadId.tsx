@@ -79,6 +79,21 @@ function AssistantThread() {
     abortRef.current?.abort();
   }, [threadId]);
 
+  // Apply protocol seed prompt from URL, then clear it so refreshes don't repeat.
+  useEffect(() => {
+    if (seed && !input) {
+      setInput(seed);
+      navigate({
+        to: "/assistant/$threadId",
+        params: { threadId },
+        search: {},
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, threadId]);
+
+
   const modelId = profile?.ai_model ?? "claude-sonnet";
   const apiKey = profile?.anthropic_api_key ?? "";
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
