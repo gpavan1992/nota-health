@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { NotaLogo } from "@/components/nota-logo";
 
-export function SiteHeader({ signedIn }: { signedIn: boolean }) {
+export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <header className="border-b border-border/70 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
