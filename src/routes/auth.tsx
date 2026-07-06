@@ -509,7 +509,7 @@ function ComplianceShield({ b }: { b: ShieldBadge }) {
             "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
         }}
       >
-        <b.icon className="h-5 w-5" strokeWidth={2} />
+        <b.icon className="h-5 w-5" />
       </div>
       <div className="text-center leading-tight">
         <div className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-foreground">
