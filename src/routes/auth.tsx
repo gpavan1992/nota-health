@@ -463,7 +463,6 @@ const COMPLIANCE_BADGES: ShieldBadge[] = [
   { label: "RLS", sub: "Row-Level Security", tone: "primary", icon: Database },
   { label: "AGPL-3.0", sub: "Open Source", tone: "neutral", icon: Award },
   { label: "Self-Host", sub: "Deployable", tone: "accent", icon: Server },
-  { label: "SOC 2", sub: "Roadmap", tone: "neutral", icon: ShieldCheck },
 ];
 
 function ComplianceShield({ b }: { b: ShieldBadge }) {
