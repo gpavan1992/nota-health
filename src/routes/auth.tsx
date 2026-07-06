@@ -52,9 +52,9 @@ function AuthPage() {
   if (!ready) return <div className="min-h-screen bg-background" />;
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <div className="grid min-h-screen bg-background md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       {/* Left panel */}
-      <div className="flex min-h-screen flex-col px-6 py-8 sm:px-10 lg:px-14">
+      <div className="flex min-h-screen flex-col px-6 py-8 sm:px-10 md:px-10 lg:px-14">
         <Link to="/" className="text-foreground">
           <NotaLogo size="md" />
         </Link>
