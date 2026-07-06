@@ -109,7 +109,7 @@ function ExtractionDetail() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${extraction.name}.csv`;
+    a.download = `${(extraction as { name: string }).name}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

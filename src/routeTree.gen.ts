@@ -21,6 +21,7 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedExtractIndexRouteImport } from './routes/_authenticated/extract.index'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedAssistantIndexRouteImport } from './routes/_authenticated/assistant.index'
+import { Route as AuthenticatedExtractExtractionIdRouteImport } from './routes/_authenticated/extract.$extractionId'
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases.$caseId'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 
@@ -85,6 +86,12 @@ const AuthenticatedAssistantIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAssistantRoute,
   } as any)
+const AuthenticatedExtractExtractionIdRoute =
+  AuthenticatedExtractExtractionIdRouteImport.update({
+    id: '/$extractionId',
+    path: '/$extractionId',
+    getParentRoute: () => AuthenticatedExtractRoute,
+  } as any)
 const AuthenticatedCasesCaseIdRoute =
   AuthenticatedCasesCaseIdRouteImport.update({
     id: '/$caseId',
@@ -109,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
+  '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/cases/': typeof AuthenticatedCasesIndexRoute
   '/extract/': typeof AuthenticatedExtractIndexRoute
@@ -121,6 +129,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
+  '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/cases': typeof AuthenticatedCasesIndexRoute
   '/extract': typeof AuthenticatedExtractIndexRoute
@@ -138,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
+  '/_authenticated/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
   '/_authenticated/extract/': typeof AuthenticatedExtractIndexRoute
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/assistant/$threadId'
     | '/cases/$caseId'
+    | '/extract/$extractionId'
     | '/assistant/'
     | '/cases/'
     | '/extract/'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/assistant/$threadId'
     | '/cases/$caseId'
+    | '/extract/$extractionId'
     | '/assistant'
     | '/cases'
     | '/extract'
@@ -183,6 +195,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/assistant/$threadId'
     | '/_authenticated/cases/$caseId'
+    | '/_authenticated/extract/$extractionId'
     | '/_authenticated/assistant/'
     | '/_authenticated/cases/'
     | '/_authenticated/extract/'
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistantIndexRouteImport
       parentRoute: typeof AuthenticatedAssistantRoute
     }
+    '/_authenticated/extract/$extractionId': {
+      id: '/_authenticated/extract/$extractionId'
+      path: '/$extractionId'
+      fullPath: '/extract/$extractionId'
+      preLoaderRoute: typeof AuthenticatedExtractExtractionIdRouteImport
+      parentRoute: typeof AuthenticatedExtractRoute
+    }
     '/_authenticated/cases/$caseId': {
       id: '/_authenticated/cases/$caseId'
       path: '/$caseId'
@@ -327,10 +347,12 @@ const AuthenticatedCasesRouteWithChildren =
   AuthenticatedCasesRoute._addFileChildren(AuthenticatedCasesRouteChildren)
 
 interface AuthenticatedExtractRouteChildren {
+  AuthenticatedExtractExtractionIdRoute: typeof AuthenticatedExtractExtractionIdRoute
   AuthenticatedExtractIndexRoute: typeof AuthenticatedExtractIndexRoute
 }
 
 const AuthenticatedExtractRouteChildren: AuthenticatedExtractRouteChildren = {
+  AuthenticatedExtractExtractionIdRoute: AuthenticatedExtractExtractionIdRoute,
   AuthenticatedExtractIndexRoute: AuthenticatedExtractIndexRoute,
 }
 
