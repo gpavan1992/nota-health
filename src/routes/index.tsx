@@ -413,7 +413,7 @@ function AssistantMock() {
           Ask a question about this chart…
         </div>
         <div className="mt-1.5 flex items-center justify-between text-[10px]">
-          <span className="text-muted-foreground">Claude Sonnet 4.5</span>
+          <span className="text-muted-foreground">Claude Sonnet 5</span>
           <span className="grid h-5 w-5 place-items-center rounded bg-foreground text-background">
             →
           </span>
