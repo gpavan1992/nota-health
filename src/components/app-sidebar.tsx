@@ -105,6 +105,17 @@ export function AppSidebar({
 
       <SidebarContent className="px-2">
         <SidebarGroup>
+          <div className="mb-2 px-2 group-data-[collapsible=icon]:hidden">
+            <Button
+              onClick={handleNewChat}
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 border-sidebar-border/60 bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New chat
+            </Button>
+          </div>
           <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
             Workspace
           </SidebarGroupLabel>
@@ -137,21 +148,48 @@ export function AppSidebar({
             Recent Cases
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            {RECENT_CASES.length === 0 ? (
+            {!recentCases || recentCases.length === 0 ? (
               <p className="px-2 py-2 text-xs leading-relaxed text-sidebar-foreground/50">
                 Recently opened cases will appear here.
               </p>
             ) : (
               <SidebarMenu>
-                {RECENT_CASES.map((c) => (
+                {recentCases.map((c) => (
                   <SidebarMenuItem key={c.id}>
                     <SidebarMenuButton asChild size="sm">
-                      <Link to="/cases">
+                      <Link to="/cases/$caseId" params={{ caseId: c.id }}>
                         <FileText />
-                        <span className="flex-1 truncate">{c.label}</span>
-                        <span className="font-mono text-[10px] text-sidebar-foreground/50">
-                          {c.mrn}
-                        </span>
+                        <span className="flex-1 truncate">{c.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[0.68rem] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/50">
+            Chat History
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {!threads || threads.length === 0 ? (
+              <p className="px-2 py-2 text-xs leading-relaxed text-sidebar-foreground/50">
+                Your conversations will appear here.
+              </p>
+            ) : (
+              <SidebarMenu>
+                {threads.slice(0, 15).map((t) => (
+                  <SidebarMenuItem key={t.id}>
+                    <SidebarMenuButton
+                      asChild
+                      size="sm"
+                      isActive={activeThreadId === t.id}
+                    >
+                      <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
+                        <MessageCircle />
+                        <span className="flex-1 truncate">{t.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -161,6 +199,7 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
 
       <SidebarFooter className="border-t border-sidebar-border/60 p-3">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
