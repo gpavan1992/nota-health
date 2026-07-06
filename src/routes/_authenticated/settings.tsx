@@ -64,6 +64,13 @@ import {
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/use-profile";
+import { GroupedModelSelect } from "@/components/grouped-model-select";
+import { McpConnectorDialog, type McpConnector } from "@/components/mcp-connector-dialog";
+import { ProviderMark } from "@/components/provider-mark";
+import { findModel } from "@/lib/model-catalog";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil, Server, Trash2 as TrashIcon, Plus as PlusIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
