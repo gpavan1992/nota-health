@@ -22,7 +22,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NotaLogo } from "@/components/nota-logo";
+import { Button } from "@/components/ui/button";
 import type { Profile } from "@/hooks/use-profile";
+import { useChatThreads, useCreateThread } from "@/hooks/use-chat-threads";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { title: "Clinical Assistant", to: "/assistant", icon: MessageSquareText },
@@ -31,8 +35,20 @@ const NAV = [
   { title: "Protocols", to: "/protocols", icon: BookMarked },
 ] as const;
 
-// Static placeholder — real cases wire in once the feature ships.
-const RECENT_CASES: { id: string; label: string; mrn: string }[] = [];
+function useRecentCases(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["recent_cases", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cases")
+        .select("id, name")
+        .order("updated_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+}
 
 const ROLE_LABEL: Record<string, string> = {
   clinician: "Clinician",
@@ -49,6 +65,19 @@ export function AppSidebar({
   profile: Profile | null | undefined;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const params = useParams({ strict: false }) as { threadId?: string };
+  const activeThreadId = params.threadId;
+  const { data: threads } = useChatThreads(user.id);
+  const { data: recentCases } = useRecentCases(user.id);
+  const createThread = useCreateThread(user.id);
+
+  function handleNewChat() {
+    createThread.mutate(undefined, {
+      onSuccess: (t) =>
+        navigate({ to: "/assistant/$threadId", params: { threadId: t.id } }),
+    });
+  }
   const displayName = profile?.full_name?.trim() || user.email || "Signed in";
   const roleLabel = profile?.role ? ROLE_LABEL[profile.role] : "Add your role";
 
