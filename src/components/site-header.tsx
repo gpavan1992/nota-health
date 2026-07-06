@@ -23,9 +23,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
                 <Link to="/auth">Sign in</Link>
               </Button>
               <Button asChild size="sm">
-                <Link to="/auth" search={{ mode: "signup" } as never}>
-                  Get started
-                </Link>
+                <Link to="/auth">Get started</Link>
               </Button>
             </>
           )}
