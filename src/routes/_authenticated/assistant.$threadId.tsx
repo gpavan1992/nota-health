@@ -34,6 +34,9 @@ import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
 import { MODEL_CHOICES, streamChat, type WireMessage } from "@/lib/chat-stream";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    seed: typeof search.seed === "string" ? (search.seed as string) : undefined,
+  }),
   component: AssistantThread,
 });
 
@@ -42,12 +45,15 @@ type Attachment = { name: string; text: string };
 function AssistantThread() {
   const { user } = Route.useRouteContext();
   const { threadId } = Route.useParams();
+  const { seed } = Route.useSearch();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: profile } = useProfile(user.id);
   const updateProfile = useUpdateProfile(user.id);
   const { data: savedMessages } = useChatMessages(threadId);
 
   const [input, setInput] = useState("");
+
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [pendingUser, setPendingUser] = useState<ChatMessage | null>(null);
