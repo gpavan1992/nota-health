@@ -474,13 +474,13 @@ function TrustSignalRow({ className = "" }: { className?: string }) {
   );
 }
 
-/* ---------- Compliance badges (shield-style, bottom of left panel) ---------- */
+/* ---------- Architecture badges (bottom of left panel) ---------- */
 
 type ShieldBadge = {
   label: string;
   sub: string;
   tone: "primary" | "accent" | "neutral";
-  icon: typeof Hospital;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 const COMPLIANCE_BADGES: ShieldBadge[] = [
