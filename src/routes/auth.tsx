@@ -459,7 +459,7 @@ function TrustSignalRow({ className = "" }: { className?: string }) {
   const items = [
     { icon: Lock, label: "AES-256 Encrypted" },
     { icon: Hospital, label: "HIPAA Architected" },
-    { icon: Star, label: "Open Source" },
+    { icon: Sparkles, label: "Open Source" },
   ];
   return (
     <div
