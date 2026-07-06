@@ -190,10 +190,19 @@ function ConfirmEmailNotice({
 
 /* ---------- Sign In ---------- */
 
-function SignInForm({ onSuccess }: { onSuccess: () => void }) {
-  const [email, setEmail] = useState("");
+function SignInForm({
+  initialEmail = "",
+  onSuccess,
+  onSwitchToSignUp,
+}: {
+  initialEmail?: string;
+  onSuccess: () => void;
+  onSwitchToSignUp: () => void;
+}) {
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
