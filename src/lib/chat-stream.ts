@@ -38,7 +38,7 @@ export interface StreamOptions {
   signal?: AbortSignal;
 }
 
-export async function streamChat({ apiKey, modelId, messages, onToken, signal }: StreamOptions): Promise<string> {
+export async function streamChat({ apiKey, modelId, messages, onToken, signal }: StreamOptions): Promise<void> {
   const choice = getModelChoice(modelId);
   if (choice.provider === "anthropic") {
     return streamAnthropic({ apiKey, model: choice.model, messages, onToken, signal });
@@ -136,20 +136,10 @@ async function streamOpenAI({
   });
 }
 
-async function readSSE(body: ReadableStream<Uint8Array>, onEvent: (data: string) => void): Promise<string> {
+async function readSSE(body: ReadableStream<Uint8Array>, onEvent: (data: string) => void): Promise<void> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  let full = "";
-  const wrapped = (data: string) => {
-    // capture text_delta / content deltas into `full` via a hook set by the caller
-    onEvent(data);
-  };
-  // patch: we can't easily know text from provider format here, so callers own onToken
-  // But we need to return final text. We'll re-parse minimally by tracking via a closure.
-  // Simpler: caller doesn't need `full`; we return "" and rely on onToken accumulation in caller.
-  // To keep this API, we accumulate whatever onToken sees by wrapping:
-  // (we can't intercept from here — refactor: let caller track full text themselves.)
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -159,9 +149,8 @@ async function readSSE(body: ReadableStream<Uint8Array>, onEvent: (data: string)
       const chunk = buf.slice(0, idx);
       buf = buf.slice(idx + 2);
       for (const line of chunk.split("\n")) {
-        if (line.startsWith("data:")) wrapped(line.slice(5).trim());
+        if (line.startsWith("data:")) onEvent(line.slice(5).trim());
       }
     }
   }
-  return full;
 }
