@@ -3,14 +3,17 @@ import { cn } from "@/lib/utils";
 /**
  * Nota mark — a capital N whose diagonal center stroke is replaced by a
  * single clean QRS heartbeat spike that rises above the cap height.
- * Two vertical strokes + one QRS diagonal, all the same weight and colour.
- * Reads as "N" at 16px; reads as "N with a heartbeat" at 120px.
+ * On mount, the QRS line traces itself once across the N, then stays still.
  */
 export function NotaMark({
   className,
   strokeWidth = 4,
+  animate = true,
   ...props
-}: React.SVGProps<SVGSVGElement> & { strokeWidth?: number }) {
+}: React.SVGProps<SVGSVGElement> & {
+  strokeWidth?: number;
+  animate?: boolean;
+}) {
   return (
     <svg
       viewBox="0 -12 40 52"
@@ -30,8 +33,11 @@ export function NotaMark({
         <path d="M4 0 V36" />
         {/* Right vertical */}
         <path d="M36 0 V36" />
-        {/* QRS diagonal: top-left → down diagonal → Q dip → R spike above cap → S drop → diagonal → bottom-right */}
-        <path d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36" />
+        {/* QRS diagonal */}
+        <path
+          d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36"
+          className={animate ? "nota-ecg-trace" : undefined}
+        />
       </g>
     </svg>
   );
@@ -42,11 +48,13 @@ export function NotaLogo({
   markClassName,
   wordClassName,
   size = "md",
+  animate = true,
 }: {
   className?: string;
   markClassName?: string;
   wordClassName?: string;
   size?: "sm" | "md" | "lg";
+  animate?: boolean;
 }) {
   const scale = {
     sm: { mark: "h-5", word: "text-lg" },
@@ -56,7 +64,10 @@ export function NotaLogo({
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <NotaMark className={cn(scale.mark, "text-primary", markClassName)} />
+      <NotaMark
+        animate={animate}
+        className={cn(scale.mark, "text-primary", markClassName)}
+      />
       <span
         className={cn(
           "font-serif font-medium tracking-tight leading-none",
