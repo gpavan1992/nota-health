@@ -8,7 +8,9 @@ import {
   Award,
   ArrowUp,
   Sparkles,
+  MailCheck,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,9 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [awaitingConfirm, setAwaitingConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -59,26 +64,46 @@ function AuthPage() {
 
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-md">
-            <Tabs defaultValue="signin">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign in</TabsTrigger>
-                <TabsTrigger value="signup">Create account</TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" className="mt-8">
-                <SignInForm
-                  onSuccess={() =>
-                    navigate({ to: "/assistant", replace: true })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="signup" className="mt-8">
-                <SignUpForm
-                  onSignedIn={() =>
-                    navigate({ to: "/assistant", replace: true })
-                  }
-                />
-              </TabsContent>
-            </Tabs>
+            {awaitingConfirm ? (
+              <ConfirmEmailNotice
+                email={awaitingConfirm}
+                onBackToSignIn={() => {
+                  setPendingEmail(awaitingConfirm);
+                  setAwaitingConfirm(null);
+                  setTab("signin");
+                }}
+              />
+            ) : (
+              <Tabs
+                value={tab}
+                onValueChange={(v) => setTab(v as "signin" | "signup")}
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="signin">Sign in</TabsTrigger>
+                  <TabsTrigger value="signup">Create account</TabsTrigger>
+                </TabsList>
+                <TabsContent value="signin" className="mt-8">
+                  <SignInForm
+                    initialEmail={pendingEmail}
+                    onSuccess={() =>
+                      navigate({ to: "/assistant", replace: true })
+                    }
+                    onSwitchToSignUp={() => setTab("signup")}
+                  />
+                </TabsContent>
+                <TabsContent value="signup" className="mt-8">
+                  <SignUpForm
+                    onSignedIn={() =>
+                      navigate({ to: "/assistant", replace: true })
+                    }
+                    onNeedsConfirmation={(email) => {
+                      setPendingEmail(email);
+                      setAwaitingConfirm(email);
+                    }}
+                  />
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </div>
 
@@ -91,12 +116,93 @@ function AuthPage() {
   );
 }
 
+/* ---------- Email confirmation notice ---------- */
+
+function ConfirmEmailNotice({
+  email,
+  onBackToSignIn,
+}: {
+  email: string;
+  onBackToSignIn: () => void;
+}) {
+  const [resending, setResending] = useState(false);
+
+  async function handleResend() {
+    setResending(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined" ? window.location.origin + "/auth" : undefined,
+      },
+    });
+    setResending(false);
+    if (error) toast.error(error.message);
+    else toast.success("Confirmation email sent again.");
+  }
+
+  return (
+    <div className="text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <MailCheck className="h-7 w-7" />
+      </div>
+      <h1 className="mt-5 font-serif text-2xl font-medium tracking-tight text-foreground">
+        Account created — check your email
+      </h1>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        We sent a confirmation link to{" "}
+        <span className="font-medium text-foreground">{email}</span>. Open it to
+        verify your address, then return here to sign in.
+      </p>
+
+      <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-left text-xs leading-relaxed text-muted-foreground">
+        <p className="font-medium text-foreground">Didn't get it?</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-4">
+          <li>Check your spam or clutter folder.</li>
+          <li>Confirm you entered the right work email.</li>
+          <li>Institutional filters can delay delivery by a few minutes.</li>
+        </ul>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-2">
+        <Button
+          type="button"
+          onClick={onBackToSignIn}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          Go to sign in
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleResend}
+          disabled={resending}
+          className="w-full"
+        >
+          {resending ? "Resending…" : "Resend confirmation email"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
 /* ---------- Sign In ---------- */
 
-function SignInForm({ onSuccess }: { onSuccess: () => void }) {
-  const [email, setEmail] = useState("");
+function SignInForm({
+  initialEmail = "",
+  onSuccess,
+  onSwitchToSignUp,
+}: {
+  initialEmail?: string;
+  onSuccess: () => void;
+  onSwitchToSignUp: () => void;
+}) {
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -186,17 +292,13 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         New to Nota Health?{" "}
         <button
           type="button"
-          onClick={() => {
-            const t = document.querySelector<HTMLButtonElement>(
-              '[role="tab"][value="signup"]',
-            );
-            t?.click();
-          }}
+          onClick={onSwitchToSignUp}
           className="font-medium text-primary hover:underline"
         >
           Create an account
         </button>
       </p>
+
     </div>
   );
 }
@@ -225,7 +327,14 @@ const SETTING_OPTIONS = [
   "Other",
 ];
 
-function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
+function SignUpForm({
+  onSignedIn,
+  onNeedsConfirmation,
+}: {
+  onSignedIn: () => void;
+  onNeedsConfirmation: (email: string) => void;
+}) {
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [organisation, setOrganisation] = useState("");
@@ -282,9 +391,10 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
       toast.success("Welcome to Nota Health");
       onSignedIn();
     } else {
-      toast.success("Check your email to confirm your account.");
+      onNeedsConfirmation(email);
     }
   }
+
 
   return (
     <div>
