@@ -143,10 +143,15 @@ function ExtractList() {
 
       <CreateExtractionDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setInitialProtocol(undefined);
+        }}
         userId={user.id}
+        initialProtocol={initialProtocol}
         onCreated={(id: string) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
       />
+
     </AppShell>
   );
 }
