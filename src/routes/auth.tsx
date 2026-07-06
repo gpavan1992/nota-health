@@ -327,7 +327,14 @@ const SETTING_OPTIONS = [
   "Other",
 ];
 
-function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
+function SignUpForm({
+  onSignedIn,
+  onNeedsConfirmation,
+}: {
+  onSignedIn: () => void;
+  onNeedsConfirmation: (email: string) => void;
+}) {
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [organisation, setOrganisation] = useState("");
