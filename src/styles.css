@@ -47,7 +47,7 @@
 }
 
 /*
- * Nota — clinical documentation assistant.
+ * Nota Health — clinical documentation assistant.
  * Warm off-white paper, near-black ink, deep slate rail,
  * a single muted clinical teal accent. No decorative gradients.
  */
@@ -156,7 +156,7 @@
   letter-spacing: -0.01em;
 }
 
-/* ECG trace-once animation for the Nota mark QRS spike */
+/* ECG trace-once animation for the Nota Health mark QRS spike */
 @keyframes nota-ecg-trace {
   0% {
     stroke-dasharray: 120;
