@@ -258,6 +258,13 @@ export function AppSidebar({
             </div>
           </div>
           <Link
+            to="/compliance"
+            aria-label="Compliance"
+            className="rounded-md p-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </Link>
+          <Link
             to="/settings"
             aria-label="Settings"
             className="rounded-md p-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
