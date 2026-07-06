@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -36,6 +37,11 @@ import { Route as AuthenticatedExtractExtractionIdRouteImport } from './routes/_
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases.$caseId'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRouteWithChildren
   '/cases': typeof AuthenticatedCasesRouteWithChildren
   '/compliance': typeof AuthenticatedComplianceRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/compliance': typeof AuthenticatedComplianceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/protocols': typeof AuthenticatedProtocolsRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRouteWithChildren
   '/_authenticated/cases': typeof AuthenticatedCasesRouteWithChildren
   '/_authenticated/compliance': typeof AuthenticatedComplianceRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/privacy'
+    | '/terms'
     | '/assistant'
     | '/cases'
     | '/compliance'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/privacy'
+    | '/terms'
     | '/compliance'
     | '/dashboard'
     | '/protocols'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/privacy'
+    | '/terms'
     | '/_authenticated/assistant'
     | '/_authenticated/cases'
     | '/_authenticated/compliance'
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   ApiToolsDrugRoute: typeof ApiToolsDrugRoute
   ApiToolsIcdRoute: typeof ApiToolsIcdRoute
   ApiToolsInteractionsRoute: typeof ApiToolsInteractionsRoute
@@ -349,6 +362,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -612,6 +632,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   ApiToolsDrugRoute: ApiToolsDrugRoute,
   ApiToolsIcdRoute: ApiToolsIcdRoute,
   ApiToolsInteractionsRoute: ApiToolsInteractionsRoute,
