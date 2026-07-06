@@ -827,12 +827,19 @@ function SiteFooter() {
           <FooterDot />
           <FooterItem>Not a medical device</FooterItem>
           <FooterDot />
-          <FooterItem>All outputs require clinical review</FooterItem>
+          <FooterItem>
+            <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          </FooterItem>
           <FooterDot />
           <FooterItem>
-            <Link to="/compliance">Compliance</Link>
+            <Link to="/terms" className="hover:text-foreground">Terms</Link>
+          </FooterItem>
+          <FooterDot />
+          <FooterItem>
+            <Link to="/compliance" className="hover:text-foreground">Compliance</Link>
           </FooterItem>
         </div>
+
       </div>
     </footer>
   );
