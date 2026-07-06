@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — Nota" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Nota Health" }] }),
   component: Dashboard,
 });
 
@@ -17,7 +17,7 @@ function Dashboard() {
       <PageHeader
         eyebrow="Welcome"
         title="Your clinical workspace is ready."
-        body={`Signed in as ${user.email}. Upload cases, ask the assistant, or configure Nota from the sidebar.`}
+        body={`Signed in as ${user.email}. Upload cases, ask the assistant, or configure Nota Health from the sidebar.`}
       />
 
       <div className="mt-10 grid gap-4 sm:grid-cols-3">

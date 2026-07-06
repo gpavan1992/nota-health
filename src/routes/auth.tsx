@@ -137,7 +137,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           Welcome back
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Sign in to your Nota workspace.
+          Sign in to your Nota Health workspace.
         </p>
       </div>
 
@@ -183,7 +183,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        New to Nota?{" "}
+        New to Nota Health?{" "}
         <button
           type="button"
           onClick={() => {
@@ -279,7 +279,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
       return;
     }
     if (data.session) {
-      toast.success("Welcome to Nota");
+      toast.success("Welcome to Nota Health");
       onSignedIn();
     } else {
       toast.success("Check your email to confirm your account.");
@@ -290,7 +290,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
     <div>
       <div>
         <h1 className="font-serif text-3xl font-medium tracking-tight text-foreground">
-          Create your Nota account
+          Create your Nota Health account
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Built for clinicians, administrators, and research teams.
@@ -406,7 +406,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
               required
             />
             <span>
-              I understand that Nota is not a medical device and all AI outputs
+              I understand that Nota Health is not a medical device and all AI outputs
               require review by a qualified healthcare professional.
             </span>
           </label>
@@ -418,7 +418,7 @@ function SignUpForm({ onSignedIn }: { onSignedIn: () => void }) {
             />
             <span>
               I agree to receive product updates and clinical documentation tips
-              from Nota.
+              from Nota Health.
             </span>
           </label>
         </div>
@@ -636,10 +636,10 @@ function SocialProofPanel() {
       <div className="relative flex h-full flex-col justify-between gap-8 p-8 lg:p-12 xl:p-14">
         <div>
           <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-white/60">
-            Why Nota
+            Why Nota Health
           </p>
           <h2 className="mt-2 max-w-md font-serif text-2xl font-medium leading-snug tracking-tight text-white xl:text-3xl">
-            Clinical documentation is broken. Nota is the layer that fixes it.
+            Clinical documentation is broken. Nota Health is the layer that fixes it.
           </h2>
         </div>
 

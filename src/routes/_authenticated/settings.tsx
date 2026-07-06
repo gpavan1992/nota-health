@@ -112,7 +112,7 @@ function SettingsPage() {
         <PageHeader
           eyebrow="Settings"
           title="Workspace preferences"
-          body="Manage your profile, safety features, data, and how Nota connects to AI providers."
+          body="Manage your profile, safety features, data, and how Nota Health connects to AI providers."
         />
 
         {isLoading || !profile ? (
@@ -250,7 +250,7 @@ function GeneralTab({
     <Card>
       <CardHeader>
         <CardTitle>General</CardTitle>
-        <CardDescription>Your identity across Nota.</CardDescription>
+        <CardDescription>Your identity across Nota Health.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSave} className="space-y-6">
@@ -623,7 +623,7 @@ function PrivacyTab({ userId }: { userId: string }) {
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p>
           All your documents are stored in a private encrypted storage bucket.
-          Nota never reads or shares your documents. Your API keys are
+          Nota Health never reads or shares your documents. Your API keys are
           encrypted at rest and never logged.
         </p>
       </div>
@@ -704,7 +704,7 @@ function SecurityTab({ userId, profile }: { userId: string; profile: Profile }) 
         <CardHeader>
           <CardTitle>Automatic sign-out</CardTitle>
           <CardDescription>
-            Nota will sign you out after this period of inactivity.
+            Nota Health will sign you out after this period of inactivity.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -982,7 +982,7 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
       <CardHeader>
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
-          Choose which model powers each Nota workflow.
+          Choose which model powers each Nota Health workflow.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -1171,7 +1171,7 @@ function ConnectorsTab() {
     <Card>
       <CardHeader>
         <CardTitle>Connectors</CardTitle>
-        <CardDescription>Bring Nota into your existing systems.</CardDescription>
+        <CardDescription>Bring Nota Health into your existing systems.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">

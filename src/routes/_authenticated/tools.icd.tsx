@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/tools/icd")({
-  head: () => ({ meta: [{ title: "ICD Code Lookup — Nota" }] }),
+  head: () => ({ meta: [{ title: "ICD Code Lookup — Nota Health" }] }),
   component: IcdToolPage,
 });
 

@@ -13,11 +13,11 @@ import {
 export const Route = createFileRoute("/_authenticated/compliance")({
   head: () => ({
     meta: [
-      { title: "Compliance — Nota" },
+      { title: "Compliance — Nota Health" },
       {
         name: "description",
         content:
-          "How Nota handles clinical data: encryption, row-level security, HIPAA readiness, data residency, and enterprise controls.",
+          "How Nota Health handles clinical data: encryption, row-level security, HIPAA readiness, data residency, and enterprise controls.",
       },
     ],
   }),
@@ -37,20 +37,20 @@ function CompliancePage() {
         <PageHeader
           eyebrow="Compliance"
           title="Security & compliance"
-          body="A plain-language overview of how Nota stores, isolates, and protects clinical data — and where the operator's responsibilities begin."
+          body="A plain-language overview of how Nota Health stores, isolates, and protects clinical data — and where the operator's responsibilities begin."
         />
 
         <Section
           icon={<Lock className="h-4 w-4 text-primary" />}
           title="Data architecture"
-          description="How Nota handles data in plain language."
+          description="How Nota Health handles data in plain language."
         >
           <BulletList
             items={[
               "Documents are stored in a private encrypted storage bucket. Each user's files are isolated from every other user's files at the storage level.",
               "The database enforces row-level security — every query is scoped to the authenticated user. No query can return another user's records even if the application layer is compromised.",
               "API keys are encrypted at rest using AES-256. The plaintext key is never logged, never stored in memory beyond a single request, and never transmitted to any third party.",
-              "Nota does not store AI conversation contents on any third-party server. Conversations are stored only in the user's own database.",
+              "Nota Health does not store AI conversation contents on any third-party server. Conversations are stored only in the user's own database.",
             ]}
           />
         </Section>
@@ -58,7 +58,7 @@ function CompliancePage() {
         <Section
           icon={<ShieldCheck className="h-4 w-4 text-primary" />}
           title="HIPAA readiness"
-          description="How Nota is architected against HIPAA principles."
+          description="How Nota Health is architected against HIPAA principles."
         >
           <BulletList
             items={[
@@ -69,8 +69,8 @@ function CompliancePage() {
             ]}
           />
           <Callout>
-            Nota does not provide a Business Associate Agreement by default. For
-            enterprise HIPAA deployments, self-host Nota on your own
+            Nota Health does not provide a Business Associate Agreement by default. For
+            enterprise HIPAA deployments, self-host Nota Health on your own
             infrastructure and execute a BAA with your cloud provider directly.
           </Callout>
         </Section>
@@ -107,7 +107,7 @@ function CompliancePage() {
         <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p>
-            Nota is not a certified HIPAA-compliant service. It is architected
+            Nota Health is not a certified HIPAA-compliant service. It is architected
             with HIPAA principles in mind and designed for self-hosted
             enterprise deployments where the operator controls compliance. For
             regulated clinical environments, consult your compliance officer

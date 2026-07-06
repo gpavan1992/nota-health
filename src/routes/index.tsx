@@ -34,13 +34,13 @@ const GITHUB_URL = "https://github.com";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Nota — the open source clinical assistant" },
+      { title: "Nota Health — the open source clinical assistant" },
       {
         name: "description",
         content:
-          "Nota is an open source clinical assistant. Chat with medical documents, extract structured data, run prior auth reviews — self-hostable, bring-your-own-AI-key, AGPL-3.0.",
+          "Nota Health is an open source clinical assistant. Chat with medical documents, extract structured data, run prior auth reviews — self-hostable, bring-your-own-AI-key, AGPL-3.0.",
       },
-      { property: "og:title", content: "Nota — the open source clinical assistant" },
+      { property: "og:title", content: "Nota Health — the open source clinical assistant" },
       {
         property: "og:description",
         content:
@@ -108,7 +108,7 @@ function Hero() {
             summaries no one has time to read.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            Nota is an open source clinical assistant that reads your medical
+            Nota Health is an open source clinical assistant that reads your medical
             documents, extracts the structured data you actually need, and runs
             the paperwork protocols your team does every day.
           </p>
@@ -176,7 +176,7 @@ function ProductPreview() {
           <div className="hidden border-r border-border bg-sidebar/95 p-3 text-sidebar-foreground sm:block">
             <div className="mb-4 flex items-center gap-2">
               <NotaMark className="h-4 w-auto text-sidebar-primary" />
-              <span className="font-serif text-sm">Nota</span>
+              <span className="font-serif text-sm">Nota Health</span>
             </div>
             <MiniNav label="Assistant" active />
             <MiniNav label="Cases" />
@@ -326,7 +326,7 @@ function FeatureGrid() {
   return (
     <section className="border-b border-border">
       <div className="mx-auto max-w-6xl px-6 py-24">
-        <SectionEyebrow>What Nota does</SectionEyebrow>
+        <SectionEyebrow>What Nota Health does</SectionEyebrow>
         <h2 className="mt-3 max-w-2xl font-serif text-3xl font-medium tracking-tight sm:text-4xl">
           Four workflows that already run in every clinic — done in a fraction
           of the time.
@@ -440,7 +440,7 @@ const SECURITY = [
   { icon: Lock, label: "Documents never leave your private storage bucket" },
   {
     icon: KeyRound,
-    label: "Bring your own AI key — Nota never sees your AI traffic",
+    label: "Bring your own AI key — Nota Health never sees your AI traffic",
   },
   {
     icon: ShieldCheck,
@@ -461,7 +461,7 @@ function SecuritySection() {
               The controls your IT security team asks for first.
             </h2>
             <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground">
-              Nota is designed for the review meeting, not the demo. Every claim
+              Nota Health is designed for the review meeting, not the demo. Every claim
               here maps to an option you can verify in the code and the
               settings panel.
             </p>
@@ -505,7 +505,7 @@ function OpenSourceSection() {
               Open source
             </SectionEyebrow>
             <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-              Nota is free and open source — AGPL-3.0.
+              Nota Health is free and open source — AGPL-3.0.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-sidebar-foreground/75">
               Built for the healthcare community, not a vendor. Anyone can audit
@@ -582,7 +582,7 @@ function SiteFooter() {
           <NotaLogo size="sm" />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <FooterItem>Nota</FooterItem>
+          <FooterItem>Nota Health</FooterItem>
           <FooterDot />
           <FooterItem>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer noopener">

@@ -22,7 +22,7 @@ import {
 type Scope = "all" | "mine" | "shared";
 
 export const Route = createFileRoute("/_authenticated/cases/")({
-  head: () => ({ meta: [{ title: "Cases — Nota" }] }),
+  head: () => ({ meta: [{ title: "Cases — Nota Health" }] }),
   component: CasesListPage,
 });
 
@@ -62,7 +62,7 @@ function CasesListPage() {
         <PageHeader
           eyebrow="Cases"
           title="Every clinical context, in one place."
-          body="Group patient encounters, department libraries, and research projects. Nota keeps documents, members, and conversations organized under each case."
+          body="Group patient encounters, department libraries, and research projects. Nota Health keeps documents, members, and conversations organized under each case."
         />
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" /> Create case

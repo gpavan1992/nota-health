@@ -20,7 +20,7 @@ export function getModelChoice(id: string) {
   return MODEL_CHOICES.find((m) => m.id === id) ?? MODEL_CHOICES[0];
 }
 
-export const CLINICAL_SYSTEM_PROMPT = `You are Nota, a clinical documentation assistant for healthcare professionals.
+export const CLINICAL_SYSTEM_PROMPT = `You are Nota Health, a clinical documentation assistant for healthcare professionals.
 
 Answer with clinical precision: cite dosages, ICD codes, drug names, and NPI numbers exactly when present in the source documents. When information is not in the provided documents, say so explicitly rather than guessing.
 
