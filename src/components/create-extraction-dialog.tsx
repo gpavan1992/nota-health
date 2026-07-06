@@ -25,8 +25,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { PROTOCOLS, getProtocol } from "@/lib/protocols";
 import { runExtraction } from "@/lib/run-extraction";
+import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
 
-type Doc = { name: string; text: string };
+type Doc = ParsedDoc & { parsing?: boolean; error?: string };
 
 export function CreateExtractionDialog({
   open,
@@ -68,17 +69,33 @@ export function CreateExtractionDialog({
   }, [open, initialProtocol]);
 
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
-    for (const f of Array.from(files)) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setDocs((d) => [...d, { name: f.name, text: String(reader.result ?? "").slice(0, 50000) }]);
-      };
-      reader.readAsText(f);
-    }
+    const list = Array.from(files);
     e.target.value = "";
+    // Add placeholders immediately so the UI shows progress
+    setDocs((d) => [...d, ...list.map((f) => ({ name: f.name, text: "", parsing: true }))]);
+    for (const f of list) {
+      try {
+        const parsed = await parseFile(f);
+        setDocs((d) =>
+          d.map((doc) =>
+            doc.name === f.name && doc.parsing ? { ...parsed, parsing: false } : doc,
+          ),
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to parse";
+        toast.error(msg);
+        setDocs((d) =>
+          d.map((doc) =>
+            doc.name === f.name && doc.parsing
+              ? { name: f.name, text: "", parsing: false, error: msg }
+              : doc,
+          ),
+        );
+      }
+    }
   }
 
   async function loadCaseDocs() {
@@ -93,6 +110,9 @@ export function CreateExtractionDialog({
     if (!name.trim()) return toast.error("Give it a name.");
     if (!profile?.anthropic_api_key) return toast.error("Add your API key in Settings.");
     if (docs.length === 0) return toast.error("Add at least one document.");
+    if (docs.some((d) => d.parsing)) return toast.error("Wait for documents to finish parsing.");
+    const usable = docs.filter((d) => d.text.trim().length > 0 || d.image);
+    if (usable.length === 0) return toast.error("No readable content in the attached files.");
 
     setBusy(true);
     const proto = getProtocol(protocolId);
@@ -124,7 +144,7 @@ export function CreateExtractionDialog({
         protocolName: proto.name,
         columns: proto.columns as unknown as never,
         customInstruction: protocolId === "custom" ? customInstruction : undefined,
-        documents: docs.filter((d) => d.text.trim().length > 0),
+        documents: usable,
       });
       await supabase
         .from("extractions")
@@ -237,10 +257,21 @@ export function CreateExtractionDialog({
 
           <div className="grid gap-2">
             <Label>Documents</Label>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border py-4 text-sm text-muted-foreground hover:bg-accent/50">
-              <Plus className="h-4 w-4" />
-              Upload text files (.txt, .md, .csv, .json)
-              <input type="file" hidden multiple onChange={handleFile} accept=".txt,.md,.csv,.json,.text" />
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border py-4 text-sm text-muted-foreground hover:bg-accent/50">
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Upload PDF, Word, images, or text
+              </div>
+              <span className="text-[11px]">
+                PDF · DOCX · PNG/JPG/WEBP · TXT/MD/CSV/JSON — up to 25MB each
+              </span>
+              <input
+                type="file"
+                hidden
+                multiple
+                onChange={handleFile}
+                accept={ACCEPTED_FILE_TYPES}
+              />
             </label>
             {docs.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -251,7 +282,18 @@ export function CreateExtractionDialog({
                   >
                     <FileText className="h-3 w-3" />
                     {d.name}
-                    {!d.text && <span className="text-muted-foreground">(name only)</span>}
+                    {d.parsing && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    )}
+                    {!d.parsing && d.error && (
+                      <span className="text-destructive">({d.error})</span>
+                    )}
+                    {!d.parsing && !d.error && d.image && (
+                      <span className="text-muted-foreground">(image)</span>
+                    )}
+                    {!d.parsing && !d.error && !d.image && !d.text && (
+                      <span className="text-muted-foreground">(name only)</span>
+                    )}
                     <button
                       type="button"
                       onClick={() => setDocs((v) => v.filter((_, j) => j !== i))}
