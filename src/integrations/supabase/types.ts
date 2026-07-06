@@ -210,6 +210,59 @@ export type Database = {
           },
         ]
       }
+      extractions: {
+        Row: {
+          case_id: string | null
+          columns: Json
+          created_at: string
+          error: string | null
+          id: string
+          name: string
+          protocol: string
+          rows: Json
+          source_documents: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          columns?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          name: string
+          protocol: string
+          rows?: Json
+          source_documents?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          columns?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          name?: string
+          protocol?: string
+          rows?: Json
+          source_documents?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extractions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ai_model: string
