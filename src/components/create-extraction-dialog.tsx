@@ -257,10 +257,21 @@ export function CreateExtractionDialog({
 
           <div className="grid gap-2">
             <Label>Documents</Label>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border py-4 text-sm text-muted-foreground hover:bg-accent/50">
-              <Plus className="h-4 w-4" />
-              Upload text files (.txt, .md, .csv, .json)
-              <input type="file" hidden multiple onChange={handleFile} accept=".txt,.md,.csv,.json,.text" />
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border py-4 text-sm text-muted-foreground hover:bg-accent/50">
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Upload PDF, Word, images, or text
+              </div>
+              <span className="text-[11px]">
+                PDF · DOCX · PNG/JPG/WEBP · TXT/MD/CSV/JSON — up to 25MB each
+              </span>
+              <input
+                type="file"
+                hidden
+                multiple
+                onChange={handleFile}
+                accept={ACCEPTED_FILE_TYPES}
+              />
             </label>
             {docs.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -271,7 +282,18 @@ export function CreateExtractionDialog({
                   >
                     <FileText className="h-3 w-3" />
                     {d.name}
-                    {!d.text && <span className="text-muted-foreground">(name only)</span>}
+                    {d.parsing && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    )}
+                    {!d.parsing && d.error && (
+                      <span className="text-destructive">({d.error})</span>
+                    )}
+                    {!d.parsing && !d.error && d.image && (
+                      <span className="text-muted-foreground">(image)</span>
+                    )}
+                    {!d.parsing && !d.error && !d.image && !d.text && (
+                      <span className="text-muted-foreground">(name only)</span>
+                    )}
                     <button
                       type="button"
                       onClick={() => setDocs((v) => v.filter((_, j) => j !== i))}
