@@ -94,6 +94,7 @@ function ExtractionDetail() {
   const columns = (extraction.columns as unknown as ProtocolColumn[]) ?? [];
   const rows = (extraction.rows as unknown as Record<string, string>[]) ?? [];
   const proto = getProtocol(extraction.protocol);
+  const name = extraction.name;
 
   function copyTSV() {
     const header = columns.map((c) => c.label).join("\t");
@@ -109,7 +110,7 @@ function ExtractionDetail() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${(extraction as { name: string }).name}.csv`;
+    a.download = `${name}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
