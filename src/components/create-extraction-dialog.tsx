@@ -33,11 +33,13 @@ export function CreateExtractionDialog({
   onOpenChange,
   userId,
   onCreated,
+  initialProtocol,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   userId: string;
   onCreated: (id: string) => void;
+  initialProtocol?: string;
 }) {
   const { data: profile } = useProfile(userId);
   const [name, setName] = useState("");
@@ -52,7 +54,7 @@ export function CreateExtractionDialog({
   useEffect(() => {
     if (!open) return;
     setName("");
-    setProtocolId("medication_list");
+    setProtocolId(initialProtocol ?? "medication_list");
     setCustomInstruction("");
     setLinkCase(false);
     setCaseId("");
@@ -63,7 +65,8 @@ export function CreateExtractionDialog({
       .order("updated_at", { ascending: false })
       .limit(50)
       .then(({ data }) => setCases(data ?? []));
-  }, [open]);
+  }, [open, initialProtocol]);
+
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;

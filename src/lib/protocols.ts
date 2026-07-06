@@ -82,12 +82,51 @@ export const PROTOCOLS: Protocol[] = [
     ],
   },
   {
+    id: "medication_reconciliation",
+    name: "Medication Reconciliation",
+    description:
+      "Extract and compare medication lists across documents to flag discrepancies.",
+    columns: [
+      { key: "drug_name", label: "Drug Name" },
+      { key: "dose_doc_a", label: "Dose (Doc A)" },
+      { key: "dose_doc_b", label: "Dose (Doc B)" },
+      { key: "status", label: "Status", description: "Match, Changed, Added, Discontinued" },
+      { key: "notes", label: "Notes" },
+    ],
+  },
+  {
+    id: "condition_checklist",
+    name: "Condition Checklist",
+    description:
+      "Clinical checklist of conditions and tasks required before discharge or transfer.",
+    columns: [
+      { key: "item", label: "Item" },
+      { key: "category", label: "Category", description: "Condition, Task, Order, Education" },
+      { key: "status", label: "Status", description: "Complete, Pending, Not Met" },
+      { key: "notes", label: "Notes" },
+    ],
+  },
+  {
+    id: "trial_eligibility",
+    name: "Clinical Trial Eligibility Review",
+    description:
+      "Compare a patient's clinical profile against trial inclusion and exclusion criteria.",
+    columns: [
+      { key: "criterion", label: "Criterion" },
+      { key: "type", label: "Type", description: "Inclusion or Exclusion" },
+      { key: "patient_value", label: "Patient Value" },
+      { key: "result", label: "Result", description: "Met, Not Met, Unclear" },
+      { key: "evidence", label: "Evidence" },
+    ],
+  },
+  {
     id: "custom",
     name: "Start from scratch",
     description: "Ask the AI to extract whatever you describe.",
     columns: [],
   },
 ];
+
 
 export function getProtocol(id: string): Protocol {
   return PROTOCOLS.find((p) => p.id === id) ?? PROTOCOLS[0];

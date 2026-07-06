@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,6 +34,9 @@ import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
 import { MODEL_CHOICES, streamChat, type WireMessage } from "@/lib/chat-stream";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    seed: typeof search.seed === "string" ? (search.seed as string) : undefined,
+  }),
   component: AssistantThread,
 });
 
@@ -42,12 +45,15 @@ type Attachment = { name: string; text: string };
 function AssistantThread() {
   const { user } = Route.useRouteContext();
   const { threadId } = Route.useParams();
+  const { seed } = Route.useSearch();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: profile } = useProfile(user.id);
   const updateProfile = useUpdateProfile(user.id);
   const { data: savedMessages } = useChatMessages(threadId);
 
   const [input, setInput] = useState("");
+
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [pendingUser, setPendingUser] = useState<ChatMessage | null>(null);
@@ -72,6 +78,21 @@ function AssistantThread() {
     setAttachments([]);
     abortRef.current?.abort();
   }, [threadId]);
+
+  // Apply protocol seed prompt from URL, then clear it so refreshes don't repeat.
+  useEffect(() => {
+    if (seed && !input) {
+      setInput(seed);
+      navigate({
+        to: "/assistant/$threadId",
+        params: { threadId },
+        search: {},
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, threadId]);
+
 
   const modelId = profile?.ai_model ?? "claude-sonnet";
   const apiKey = profile?.anthropic_api_key ?? "";
