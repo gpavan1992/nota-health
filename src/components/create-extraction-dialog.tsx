@@ -110,6 +110,9 @@ export function CreateExtractionDialog({
     if (!name.trim()) return toast.error("Give it a name.");
     if (!profile?.anthropic_api_key) return toast.error("Add your API key in Settings.");
     if (docs.length === 0) return toast.error("Add at least one document.");
+    if (docs.some((d) => d.parsing)) return toast.error("Wait for documents to finish parsing.");
+    const usable = docs.filter((d) => d.text.trim().length > 0 || d.image);
+    if (usable.length === 0) return toast.error("No readable content in the attached files.");
 
     setBusy(true);
     const proto = getProtocol(protocolId);
@@ -141,7 +144,7 @@ export function CreateExtractionDialog({
         protocolName: proto.name,
         columns: proto.columns as unknown as never,
         customInstruction: protocolId === "custom" ? customInstruction : undefined,
-        documents: docs.filter((d) => d.text.trim().length > 0),
+        documents: usable,
       });
       await supabase
         .from("extractions")
