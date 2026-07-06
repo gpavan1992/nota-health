@@ -31,6 +31,8 @@ export function AppShell({
     !profile?.google_api_key;
   const onSettings = pathname.startsWith("/settings");
 
+  const patternClass = getPatternClass(pathname);
+
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -79,10 +81,27 @@ export function AppShell({
           </div>
         )}
 
-        <main className="flex-1 px-6 py-10 sm:px-10">
+        <main className={`flex-1 px-6 py-10 sm:px-10 ${patternClass}`}>
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
+
+        <footer className="border-t border-border/60 bg-background/70 px-6 py-2.5 text-center text-[0.7rem] leading-relaxed text-muted-foreground">
+          Nota is not a medical device. All AI outputs require review by a
+          qualified healthcare professional.
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+function getPatternClass(pathname: string): string {
+  if (pathname.startsWith("/assistant")) return "bg-pattern-neural";
+  if (pathname.startsWith("/cases")) return "bg-pattern-grid";
+  if (pathname.startsWith("/extract")) return "bg-pattern-lab";
+  if (pathname.startsWith("/protocols")) return "bg-pattern-flow";
+  if (pathname.startsWith("/tools/drug")) return "bg-pattern-hex";
+  if (pathname.startsWith("/tools/pubmed")) return "bg-pattern-paper";
+  if (pathname.startsWith("/tools/provider")) return "bg-pattern-map";
+  if (pathname.startsWith("/tools/icd")) return "bg-pattern-tree";
+  return "";
 }

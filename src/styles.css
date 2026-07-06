@@ -155,3 +155,91 @@
   font-variant-ligatures: none;
   letter-spacing: -0.01em;
 }
+
+/* ECG trace-once animation for the Nota mark QRS spike */
+@keyframes nota-ecg-trace {
+  0% {
+    stroke-dasharray: 120;
+    stroke-dashoffset: 120;
+  }
+  100% {
+    stroke-dasharray: 120;
+    stroke-dashoffset: 0;
+  }
+}
+.nota-ecg-trace {
+  animation: nota-ecg-trace 1.1s cubic-bezier(0.65, 0, 0.35, 1) 0.15s 1 both;
+}
+
+/* Streaming AI message accent — subtle teal left border while streaming */
+.assistant-streaming {
+  border-left: 2px solid color-mix(in oklab, var(--primary) 70%, transparent);
+  padding-left: 0.75rem;
+  transition: border-color 0.4s ease-out;
+}
+
+/* Faint clinical background patterns, applied to page containers.
+   All patterns are near-invisible so they never fight the content. */
+@utility bg-pattern-neural {
+  background-image:
+    radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--primary) 22%, transparent) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 70% 60%, color-mix(in oklab, var(--primary) 18%, transparent) 0.5px, transparent 1.5px),
+    radial-gradient(circle at 40% 80%, color-mix(in oklab, var(--primary) 18%, transparent) 0.5px, transparent 1.5px);
+  background-size: 120px 120px, 160px 160px, 180px 180px;
+}
+
+@utility bg-pattern-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+@utility bg-pattern-lab {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@utility bg-pattern-flow {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in oklab, var(--primary) 5%, transparent) 0,
+      color-mix(in oklab, var(--primary) 5%, transparent) 1px,
+      transparent 1px,
+      transparent 28px
+    );
+}
+
+@utility bg-pattern-hex {
+  background-image:
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--primary) 12%, transparent) 1px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+@utility bg-pattern-paper {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--foreground) 4%, transparent) 0,
+      color-mix(in oklab, var(--foreground) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+}
+
+@utility bg-pattern-map {
+  background-image:
+    radial-gradient(circle at 25% 40%, color-mix(in oklab, var(--primary) 14%, transparent) 1.5px, transparent 2.5px),
+    radial-gradient(circle at 75% 70%, color-mix(in oklab, var(--primary) 12%, transparent) 1.5px, transparent 2.5px);
+  background-size: 140px 140px, 200px 200px;
+}
+
+@utility bg-pattern-tree {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 3%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+}

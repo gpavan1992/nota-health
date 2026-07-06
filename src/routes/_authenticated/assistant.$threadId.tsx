@@ -422,10 +422,23 @@ function MessageBubble({
   }
   return (
     <div className="max-w-[95%]">
-      <div className="whitespace-pre-wrap text-[0.95rem] leading-relaxed text-foreground">
+      <div
+        className={
+          "whitespace-pre-wrap text-[0.95rem] leading-relaxed text-foreground " +
+          (streaming ? "assistant-streaming" : "")
+        }
+      >
         {content}
-        {streaming && <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-primary align-middle" />}
+        {streaming && (
+          <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-primary align-middle" />
+        )}
       </div>
+      {!streaming && content && (
+        <p className="mt-2 text-[0.7rem] italic leading-relaxed text-muted-foreground/80">
+          AI-generated. Review by a qualified healthcare professional required
+          before any clinical use.
+        </p>
+      )}
     </div>
   );
 }
