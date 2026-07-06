@@ -70,13 +70,15 @@ export function NotaLogo({
       />
       <span
         className={cn(
-          "font-serif font-medium tracking-tight leading-none",
+          "font-serif tracking-tight leading-none",
           scale.word,
           wordClassName,
         )}
       >
-        Nota
+        <span className="font-medium">Nota</span>
+        <span className="font-light"> Health</span>
       </span>
+
     </span>
   );
 }

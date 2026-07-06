@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authenticated/tools/pubmed")({
-  head: () => ({ meta: [{ title: "Medical Literature — Nota" }] }),
+  head: () => ({ meta: [{ title: "Medical Literature — Nota Health" }] }),
   component: PubmedToolPage,
 });
 

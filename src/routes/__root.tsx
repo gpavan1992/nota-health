@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nota — AI assistant for healthcare documentation" },
+      { title: "Nota Health — Clinical Documentation Intelligence" },
       {
         name: "description",
         content:
-          "Nota helps clinicians and health administrators upload clinical documents and get intelligent, AI-powered answers about them.",
+          "Nota Health helps clinicians and health administrators upload clinical documents and get intelligent, AI-powered answers about them.",
       },
-      { name: "author", content: "Nota" },
-      { property: "og:title", content: "Nota — AI assistant for healthcare documentation" },
+      { name: "author", content: "Nota Health" },
+      { property: "og:title", content: "Nota Health — Clinical Documentation Intelligence" },
       {
         property: "og:description",
         content:

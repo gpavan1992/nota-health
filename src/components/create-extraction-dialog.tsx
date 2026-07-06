@@ -154,7 +154,7 @@ export function CreateExtractionDialog({
         <DialogHeader>
           <DialogTitle>New Extraction</DialogTitle>
           <DialogDescription>
-            Choose a protocol and add documents. Nota fills in the structured fields.
+            Choose a protocol and add documents. Nota Health fills in the structured fields.
           </DialogDescription>
         </DialogHeader>
 

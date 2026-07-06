@@ -21,7 +21,7 @@ import {
 } from "@/hooks/use-cases";
 
 export const Route = createFileRoute("/_authenticated/cases/$caseId")({
-  head: () => ({ meta: [{ title: "Case — Nota" }] }),
+  head: () => ({ meta: [{ title: "Case — Nota Health" }] }),
   component: CaseDetailPage,
 });
 

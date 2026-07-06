@@ -12,7 +12,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         <nav className="flex items-center gap-2">
           {signedIn ? (
             <Button asChild size="sm">
-              <Link to="/assistant">Open Nota</Link>
+              <Link to="/assistant">Open Nota Health</Link>
             </Button>
           ) : (
             <>

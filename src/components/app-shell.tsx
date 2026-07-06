@@ -86,7 +86,7 @@ export function AppShell({
         </main>
 
         <footer className="border-t border-border/60 bg-background/70 px-6 py-2.5 text-center text-[0.7rem] leading-relaxed text-muted-foreground">
-          Nota is not a medical device. All AI outputs require review by a
+          Nota Health is not a medical device. All AI outputs require review by a
           qualified healthcare professional.
         </footer>
       </SidebarInset>
