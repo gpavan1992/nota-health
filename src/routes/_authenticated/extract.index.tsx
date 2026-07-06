@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, FileSearch, FolderOpen, Table as TableIcon } from "lucide-react";
@@ -14,15 +14,32 @@ import { getProtocol } from "@/lib/protocols";
 import { CreateExtractionDialog } from "@/components/create-extraction-dialog";
 
 export const Route = createFileRoute("/_authenticated/extract/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    new: search.new === "1" || search.new === true ? true : undefined,
+    protocol: typeof search.protocol === "string" ? (search.protocol as string) : undefined,
+  }),
   component: ExtractList,
 });
 
 function ExtractList() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const searchParams = Route.useSearch();
   const [tab, setTab] = useState<"all" | "case" | "standalone">("all");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [initialProtocol, setInitialProtocol] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (searchParams.new) {
+      setInitialProtocol(searchParams.protocol);
+      setCreateOpen(true);
+      navigate({ to: "/extract", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.new, searchParams.protocol]);
+
+
 
   const { data: extractions } = useQuery({
     queryKey: ["extractions", user.id],
