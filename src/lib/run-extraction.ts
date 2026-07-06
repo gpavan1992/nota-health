@@ -1,13 +1,19 @@
 import { getModelChoice } from "./chat-stream";
 import type { ProtocolColumn } from "./protocols";
 
+export interface ExtractDoc {
+  name: string;
+  text: string;
+  image?: { data: string; mediaType: string };
+}
+
 export interface ExtractParams {
   apiKey: string;
   modelId: string;
   protocolName: string;
   columns: ProtocolColumn[]; // may be empty for custom
   customInstruction?: string;
-  documents: { name: string; text: string }[];
+  documents: ExtractDoc[];
 }
 
 export interface ExtractResult {
@@ -17,11 +23,16 @@ export interface ExtractResult {
 
 /**
  * Runs a structured extraction against the user's own Anthropic/OpenAI key.
- * Returns { columns, rows } where rows are arrays of column-key -> string.
+ * Text documents are inlined into the prompt. Image documents are sent as
+ * vision content blocks (Anthropic: image/base64, OpenAI: image_url data URL).
  */
 export async function runExtraction(p: ExtractParams): Promise<ExtractResult> {
   const choice = getModelChoice(p.modelId);
-  const docsBlock = p.documents
+
+  const textDocs = p.documents.filter((d) => !d.image && d.text.trim().length > 0);
+  const imageDocs = p.documents.filter((d) => d.image);
+
+  const docsBlock = textDocs
     .map((d) => `--- Document: ${d.name} ---\n${d.text.slice(0, 40000)}`)
     .join("\n\n");
 
@@ -40,6 +51,10 @@ ${p.columns.map((c) => `- ${c.key} (${c.label})${c.description ? " — " + c.des
 }
 User instruction: ${p.customInstruction ?? "Extract the most clinically useful structured data."}`;
 
+  const imageList = imageDocs.length
+    ? `\n\nAttached images (${imageDocs.length}): ${imageDocs.map((d) => d.name).join(", ")}.\nRead any clinical content visible in the images (labels, values, handwritten notes) as source material.`
+    : "";
+
   const prompt = `You are a clinical data extraction assistant. Read the attached documents and produce a structured table for the protocol: ${p.protocolName}.
 
 ${columnSpec}
@@ -51,13 +66,13 @@ Rules:
 - Preserve exact dosages, ICD codes, drug names, and identifiers as written in the source.
 
 Documents:
-${docsBlock}`;
+${docsBlock || "(no text documents attached)"}${imageList}`;
 
   let raw: string;
   if (choice.provider === "anthropic") {
-    raw = await callAnthropicJSON(p.apiKey, choice.model, prompt);
+    raw = await callAnthropicJSON(p.apiKey, choice.model, prompt, imageDocs);
   } else {
-    raw = await callOpenAIJSON(p.apiKey, choice.model, prompt);
+    raw = await callOpenAIJSON(p.apiKey, choice.model, prompt, imageDocs);
   }
 
   const parsed = safeParseJSON(raw);
@@ -79,7 +94,24 @@ ${docsBlock}`;
   return { columns, rows };
 }
 
-async function callAnthropicJSON(apiKey: string, model: string, prompt: string): Promise<string> {
+type ImgDoc = { name: string; image?: { data: string; mediaType: string } };
+
+async function callAnthropicJSON(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  images: ImgDoc[],
+): Promise<string> {
+  const content: unknown[] = [];
+  for (const d of images) {
+    if (!d.image) continue;
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: d.image.mediaType, data: d.image.data },
+    });
+  }
+  content.push({ type: "text", text: prompt });
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -91,7 +123,7 @@ async function callAnthropicJSON(apiKey: string, model: string, prompt: string):
     body: JSON.stringify({
       model,
       max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -101,14 +133,27 @@ async function callAnthropicJSON(apiKey: string, model: string, prompt: string):
   return text;
 }
 
-async function callOpenAIJSON(apiKey: string, model: string, prompt: string): Promise<string> {
+async function callOpenAIJSON(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  images: ImgDoc[],
+): Promise<string> {
+  const content: unknown[] = [{ type: "text", text: prompt }];
+  for (const d of images) {
+    if (!d.image) continue;
+    content.push({
+      type: "image_url",
+      image_url: { url: `data:${d.image.mediaType};base64,${d.image.data}` },
+    });
+  }
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     }),
   });
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -123,7 +168,6 @@ function safeParseJSON(text: string): { columns: unknown[]; rows: unknown[] } | 
   try {
     return JSON.parse(trimmed);
   } catch {
-    // Try to find first {...} block
     const m = trimmed.match(/\{[\s\S]*\}/);
     if (m) {
       try {
