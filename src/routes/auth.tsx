@@ -644,14 +644,33 @@ const STATS: StatCard[] = [
 
 function SocialProofPanel() {
   return (
-    <div className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground md:block">
+    <div
+      className="relative hidden overflow-hidden text-white md:block"
+      style={{
+        background:
+          "radial-gradient(120% 90% at 100% 0%, #0d3a4a 0%, #0a2434 45%, #0a1a2a 100%)",
+      }}
+    >
+      {/* Ambient glows */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 -right-24 h-[420px] w-[420px] rounded-full blur-3xl"
+        style={{ background: "radial-gradient(closest-side, rgba(45,180,180,0.28), transparent 70%)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 -left-24 h-[380px] w-[380px] rounded-full blur-3xl"
+        style={{ background: "radial-gradient(closest-side, rgba(90,110,220,0.22), transparent 70%)" }}
+      />
+
       <EcgBackdrop />
+
       <div className="relative flex h-full flex-col justify-between gap-8 p-8 lg:p-12 xl:p-14">
         <div>
-          <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-sidebar-foreground/60">
+          <p className="text-[0.68rem] font-medium uppercase tracking-[0.2em] text-white/60">
             Why Nota
           </p>
-          <h2 className="mt-2 max-w-md font-serif text-2xl font-medium leading-snug tracking-tight text-sidebar-foreground xl:text-3xl">
+          <h2 className="mt-2 max-w-md font-serif text-2xl font-medium leading-snug tracking-tight text-white xl:text-3xl">
             Clinical documentation is broken. Nota is the layer that fixes it.
           </h2>
         </div>
@@ -670,21 +689,21 @@ function SocialProofPanel() {
 
 function StatTile({ card }: { card: StatCard }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
       {card.stat ? (
-        <div className="font-serif text-3xl font-semibold tracking-tight text-primary xl:text-4xl">
+        <div className="font-serif text-3xl font-semibold tracking-tight text-[#5ee0d0] xl:text-4xl">
           {card.stat}
         </div>
       ) : (
-        <div className="font-serif text-base font-medium text-sidebar-foreground">
+        <div className="font-serif text-base font-medium text-white">
           {card.title}
         </div>
       )}
-      <p className="mt-1.5 text-xs leading-relaxed text-sidebar-foreground/80 xl:text-sm">
+      <p className="mt-1.5 text-xs leading-relaxed text-white/75 xl:text-sm">
         {card.body}
       </p>
       {card.source && (
-        <p className="mt-2 text-[0.62rem] uppercase tracking-[0.14em] text-sidebar-foreground/50">
+        <p className="mt-2 text-[0.62rem] uppercase tracking-[0.14em] text-white/45">
           — {card.source}
         </p>
       )}
@@ -694,31 +713,35 @@ function StatTile({ card }: { card: StatCard }) {
 
 function EcgBackdrop() {
   return (
-    <svg
-      className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.06]"
-      viewBox="0 0 800 600"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.09]"
     >
-      <defs>
-        <pattern
-          id="ecg-pattern"
-          x="0"
-          y="0"
-          width="200"
-          height="80"
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M0 40 H70 L80 40 L86 20 L92 60 L98 30 L104 40 H200"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-sidebar-primary"
-          />
-        </pattern>
-      </defs>
-      <rect width="800" height="600" fill="url(#ecg-pattern)" />
-    </svg>
+      <svg
+        className="ecg-drift absolute inset-y-0 left-0 h-full"
+        style={{ width: "calc(100% + 220px)" }}
+        viewBox="0 0 1000 600"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <pattern
+            id="ecg-pattern"
+            x="0"
+            y="0"
+            width="200"
+            height="90"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M0 45 H70 L80 45 L86 22 L92 68 L98 32 L104 45 H200"
+              fill="none"
+              stroke="#5ee0d0"
+              strokeWidth="1.2"
+            />
+          </pattern>
+        </defs>
+        <rect width="1000" height="600" fill="url(#ecg-pattern)" />
+      </svg>
+    </div>
   );
 }
