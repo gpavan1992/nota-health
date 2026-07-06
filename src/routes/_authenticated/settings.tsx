@@ -166,7 +166,7 @@ function SettingsPage() {
               <ApiKeysTab userId={user.id} profile={profile} />
             </TabsContent>
             <TabsContent value="connectors">
-              <ConnectorsTab />
+              <ConnectorsTab userId={user.id} />
             </TabsContent>
           </Tabs>
         )}
