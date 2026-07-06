@@ -21,6 +21,7 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedAssistantIndexRouteImport } from './routes/_authenticated/assistant.index'
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases.$caseId'
+import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -83,6 +84,12 @@ const AuthenticatedCasesCaseIdRoute =
     path: '/$caseId',
     getParentRoute: () => AuthenticatedCasesRoute,
   } as any)
+const AuthenticatedAssistantThreadIdRoute =
+  AuthenticatedAssistantThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => AuthenticatedAssistantRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/extract': typeof AuthenticatedExtractRoute
   '/protocols': typeof AuthenticatedProtocolsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/cases/': typeof AuthenticatedCasesIndexRoute
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/extract': typeof AuthenticatedExtractRoute
   '/protocols': typeof AuthenticatedProtocolsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/cases': typeof AuthenticatedCasesIndexRoute
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/_authenticated/extract': typeof AuthenticatedExtractRoute
   '/_authenticated/protocols': typeof AuthenticatedProtocolsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/extract'
     | '/protocols'
     | '/settings'
+    | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/assistant/'
     | '/cases/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/extract'
     | '/protocols'
     | '/settings'
+    | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/assistant'
     | '/cases'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
     | '/_authenticated/extract'
     | '/_authenticated/protocols'
     | '/_authenticated/settings'
+    | '/_authenticated/assistant/$threadId'
     | '/_authenticated/cases/$caseId'
     | '/_authenticated/assistant/'
     | '/_authenticated/cases/'
@@ -256,15 +269,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCasesCaseIdRouteImport
       parentRoute: typeof AuthenticatedCasesRoute
     }
+    '/_authenticated/assistant/$threadId': {
+      id: '/_authenticated/assistant/$threadId'
+      path: '/$threadId'
+      fullPath: '/assistant/$threadId'
+      preLoaderRoute: typeof AuthenticatedAssistantThreadIdRouteImport
+      parentRoute: typeof AuthenticatedAssistantRoute
+    }
   }
 }
 
 interface AuthenticatedAssistantRouteChildren {
+  AuthenticatedAssistantThreadIdRoute: typeof AuthenticatedAssistantThreadIdRoute
   AuthenticatedAssistantIndexRoute: typeof AuthenticatedAssistantIndexRoute
 }
 
 const AuthenticatedAssistantRouteChildren: AuthenticatedAssistantRouteChildren =
   {
+    AuthenticatedAssistantThreadIdRoute: AuthenticatedAssistantThreadIdRoute,
     AuthenticatedAssistantIndexRoute: AuthenticatedAssistantIndexRoute,
   }
 
