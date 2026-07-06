@@ -391,9 +391,10 @@ function SignUpForm({
       toast.success("Welcome to Nota Health");
       onSignedIn();
     } else {
-      toast.success("Check your email to confirm your account.");
+      onNeedsConfirmation(email);
     }
   }
+
 
   return (
     <div>
