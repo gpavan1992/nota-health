@@ -95,7 +95,7 @@ function AssistantThread() {
   }, [seed, threadId]);
 
 
-  const modelId = profile?.ai_model ?? "claude-sonnet";
+  const modelId = profile?.ai_model ?? "claude-sonnet-4-5";
   const apiKey = profile?.anthropic_api_key ?? "";
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
 
