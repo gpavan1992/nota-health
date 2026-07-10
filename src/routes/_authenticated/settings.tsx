@@ -1027,125 +1027,54 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
 
 /* ------------------------------ API Keys ------------------------------ */
 
-type ProviderKeyField = "anthropic_api_key" | "openai_api_key" | "google_api_key";
-
-const PROVIDER_KEY_CARDS: Array<{
-  provider: "anthropic" | "openai" | "google";
-  field: ProviderKeyField;
-  label: string;
-  placeholder: string;
-  helpUrl: string;
-  helpLabel: string;
-  description: string;
-}> = [
-  {
-    provider: "anthropic",
-    field: "anthropic_api_key",
-    label: "Anthropic",
-    placeholder: "sk-ant-…",
-    helpUrl: "https://console.anthropic.com/settings/keys",
-    helpLabel: "console.anthropic.com",
-    description: "Powers Claude Fable, Opus, Sonnet, and Haiku models.",
-  },
-  {
-    provider: "openai",
-    field: "openai_api_key",
-    label: "OpenAI",
-    placeholder: "sk-…",
-    helpUrl: "https://platform.openai.com/api-keys",
-    helpLabel: "platform.openai.com",
-    description: "Powers GPT-5.5, GPT-5.4, and GPT-5.4 Lite.",
-  },
-  {
-    provider: "google",
-    field: "google_api_key",
-    label: "Google",
-    placeholder: "AIza…",
-    helpUrl: "https://aistudio.google.com/app/apikey",
-    helpLabel: "aistudio.google.com",
-    description: "Powers Gemini 3, Gemini 3.1 Pro, and Flash models.",
-  },
-];
-
 function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
-  const rawPrefs = (profile.preferences ?? {}) as Record<string, unknown>;
-  const ollamaKey =
-    typeof rawPrefs.ollama_api_key === "string" ? (rawPrefs.ollama_api_key as string) : "";
-  const configured =
-    (profile.anthropic_api_key ? 1 : 0) +
-    (profile.openai_api_key ? 1 : 0) +
-    (profile.google_api_key ? 1 : 0) +
-    (ollamaKey ? 1 : 0);
-
   return (
     <div className="space-y-6">
-      <Card className="border-dashed">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Bring your own keys</CardTitle>
-          <CardDescription>
-            Nota Health never proxies your prompts. Keys are stored encrypted and used
-            directly from your browser to call each provider.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2 pt-0 text-xs">
-          <Badge variant={configured > 0 ? "default" : "outline"}>
-            {configured} of 4 providers configured
-          </Badge>
-        </CardContent>
-      </Card>
-
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Providers</h3>
-          <span className="text-xs text-muted-foreground">Encrypted at rest</span>
-        </div>
-        <div className="grid gap-4">
-          {PROVIDER_KEY_CARDS.map((c) => (
-            <ApiKeyCard
-              key={c.field}
-              userId={userId}
-              provider={c.provider}
-              field={c.field}
-              label={c.label}
-              placeholder={c.placeholder}
-              description={c.description}
-              helpUrl={c.helpUrl}
-              helpLabel={c.helpLabel}
-              initial={(profile[c.field] as string | null) ?? ""}
-            />
-          ))}
-          <OllamaApiKeyCard userId={userId} profile={profile} initial={ollamaKey} />
-        </div>
-      </section>
+      <ApiKeyCard
+        userId={userId}
+        field="anthropic_api_key"
+        label="Anthropic (Claude) API Key"
+        placeholder="sk-ant-…"
+        initial={profile.anthropic_api_key ?? ""}
+      />
+      <ApiKeyCard
+        userId={userId}
+        field="openai_api_key"
+        label="OpenAI API Key"
+        placeholder="sk-…"
+        initial={profile.openai_api_key ?? ""}
+      />
+      <ApiKeyCard
+        userId={userId}
+        field="google_api_key"
+        label="Google (Gemini) API Key"
+        placeholder="AIza…"
+        initial={profile.google_api_key ?? ""}
+      />
+      <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>You must provide at least one API key. Keys are encrypted in storage.</p>
+      </div>
     </div>
   );
 }
 
 function ApiKeyCard({
   userId,
-  provider,
   field,
   label,
   placeholder,
-  description,
-  helpUrl,
-  helpLabel,
   initial,
 }: {
   userId: string;
-  provider: "anthropic" | "openai" | "google";
-  field: ProviderKeyField;
+  field: "anthropic_api_key" | "openai_api_key" | "google_api_key";
   label: string;
   placeholder: string;
-  description: string;
-  helpUrl: string;
-  helpLabel: string;
   initial: string;
 }) {
   const [value, setValue] = useState(initial);
   const [show, setShow] = useState(false);
   const update = useUpdateProfile(userId);
-  const hasKey = Boolean(initial);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -1156,7 +1085,7 @@ function ApiKeyCard({
     }
     try {
       await update.mutateAsync({ [field]: trimmed || null });
-      toast.success(`${label} key saved`);
+      toast.success(`${label} saved`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     }
@@ -1166,7 +1095,7 @@ function ApiKeyCard({
     setValue("");
     try {
       await update.mutateAsync({ [field]: null });
-      toast.success(`${label} key removed`);
+      toast.success(`${label} removed`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     }
@@ -1174,17 +1103,8 @@ function ApiKeyCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start gap-3 space-y-0 pb-3">
-        <ProviderMark provider={provider} size="md" />
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">{label}</CardTitle>
-            <Badge variant={hasKey ? "default" : "outline"} className="text-[10px]">
-              {hasKey ? "Connected" : "Not set"}
-            </Badge>
-          </div>
-          <CardDescription className="text-xs">{description}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="text-base">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={save} className="space-y-3">
@@ -1208,134 +1128,20 @@ function ApiKeyCard({
               {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <a
-              href={helpUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Get a key at {helpLabel} →
-            </a>
-            <div className="flex gap-2">
-              {hasKey && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clear}
-                  disabled={update.isPending}
-                >
-                  Remove
-                </Button>
-              )}
-              <Button type="submit" size="sm" disabled={update.isPending}>
-                {update.isPending ? "Saving…" : "Save"}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function OllamaApiKeyCard({
-  userId,
-  profile,
-  initial,
-}: {
-  userId: string;
-  profile: Profile;
-  initial: string;
-}) {
-  const [value, setValue] = useState(initial);
-  const [reveal, setReveal] = useState(false);
-  const update = useUpdateProfile(userId);
-  const hasKey = Boolean(initial);
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = value.trim();
-    const next = { ...((profile.preferences ?? {}) as Record<string, unknown>) };
-    if (trimmed) next.ollama_api_key = trimmed;
-    else delete next.ollama_api_key;
-    // Clean up legacy base URL field so state stays tidy.
-    delete next.ollama_base_url;
-    try {
-      await update.mutateAsync({ preferences: next as never });
-      toast.success(trimmed ? "Ollama key saved" : "Ollama key removed");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-start gap-3 space-y-0 pb-3">
-        <ProviderMark provider="ollama" size="md" />
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">Ollama</CardTitle>
-            <Badge variant={hasKey ? "default" : "outline"} className="text-[10px]">
-              {hasKey ? "Connected" : "Not set"}
-            </Badge>
-          </div>
-          <CardDescription className="text-xs">
-            Powers Llama 3.1, Meditron, Mistral, and Qwen via Ollama&apos;s hosted
-            cloud. Get a key at{" "}
-            <a
-              href="https://ollama.com/settings/keys"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 hover:text-foreground"
-            >
-              ollama.com/settings/keys →
-            </a>
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={save} className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="ollama-key" className="text-xs text-muted-foreground">
-              API key
-            </Label>
-            <Input
-              id="ollama-key"
-              type={reveal ? "text" : "password"}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="ollama-…"
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={300}
-              className="font-mono text-sm"
-            />
-          </div>
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setReveal((r) => !r)}
-              disabled={update.isPending}
-            >
-              {reveal ? "Hide" : "Show"}
-            </Button>
-            {hasKey && value === initial && (
+            {initial && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setValue("")}
+                onClick={clear}
                 disabled={update.isPending}
               >
-                Clear
+                Remove
               </Button>
             )}
             <Button type="submit" size="sm" disabled={update.isPending}>
-              {update.isPending ? "Saving…" : "Save key"}
+              {update.isPending ? "Saving…" : "Save"}
             </Button>
           </div>
         </form>
@@ -1343,7 +1149,6 @@ function OllamaApiKeyCard({
     </Card>
   );
 }
-
 
 /* ------------------------------ Connectors ------------------------------ */
 
