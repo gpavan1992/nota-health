@@ -1,110 +1,95 @@
 
 # Audit findings (no fixes applied)
 
-## CLINICAL TOOLS
-
-### Drug Database (`/tools/drug` + `/api/tools/drug`, `/api/tools/interactions`)
-
-**Critical**
-- **openFDA search query is malformed.** In both `drug.ts` and `interactions.ts` the built term is `(openfda.brand_name:"foo"+openfda.generic_name:"foo")`. In Lucene the `+` means "MUST", so this asks openFDA for records that contain the name in *both* the brand and generic fields simultaneously. Common drugs (e.g. `metformin` — no brand match; `Eliquis` — no generic match "eliquis") return zero rows and the UI shows "No drug label found." The intended operator is `+OR+` / space. This breaks the primary "search metformin → real data" test.
-- **Interaction check silently drops any drug whose openFDA label lookup fails** — with the malformed query above, that is the common case. Result: "metformin + lisinopril + atorvastatin" typically resolves 0–1 labels and returns "No documented interactions found," which reads as a safety green-light. This is a *clinically misleading* false negative.
+## NAMING
 
 **Medium**
-- **Interaction detection is a substring scan of one drug's name inside the other's `drug_interactions` / `warnings` / `contraindications` free-text.** With three-letter tokens filtered out, short generics (`ASA`) never match; long brand names produce partial matches inside unrelated words. Severity is a keyword heuristic (`"avoid" → Major`), so a sentence like "avoid abrupt discontinuation" against an unrelated drug rates Major. Not fit for clinical use; needs a real interaction dataset (RxNav, DrugBank).
-- **Query sanitisation strips `"` and `\`** but leaves `:` and `(` `)`, so a search containing `:` (e.g. `"Metformin HCl: 500mg"`) breaks the Lucene grouping and returns a 400.
-- Only the first result is shown (`limit=1`), and there is no disambiguation UI — searching `insulin` returns a single arbitrary label out of hundreds.
-- Interaction checker has no per-input feedback: the "resolved" list at the bottom mentions labels not found, but the individual drug chip doesn't indicate which drugs contributed to the check.
-- Response text is truncated with `line-clamp-[12]` / `line-clamp-4` and there is no "show more" — long FDA warnings sections are silently cut off.
+- **`NotaLogo` component (`src/components/nota-logo.tsx` line 78) renders the wordmark as `Nota` + `Health`**, correctly. But the standalone `NotaMark` is used bare (no wordmark) in several places — that's fine as a mark. However `src/components/site-header.tsx:15` uses "Open Nota Health" — good. No naked "Nota" as product name visible in user-facing copy. ✓
+- **`export const CLINICAL_SYSTEM_PROMPT` (`src/lib/chat-stream.ts:40`)** starts with `"You are Nota Health, a clinical documentation assistant…"` — good, and instructs the model to append the disclaimer to every response. ✓ But because Gemini streaming isn't wired (prior audit), Gemini responses never actually reach the disclaimer append path — the "appears at end of every Gemini response" audit item still fails for that reason.
+- **User-visible "Lovable" strings:** three occurrences in `src/integrations/supabase/{client,client.server,auth-middleware}.ts` — the error message `"Connect Supabase in Lovable Cloud."` is surface-able as a runtime error toast if env vars are missing. Per Lovable Cloud rules, "Supabase" and "Lovable" should not be shown to end users. Files are auto-generated, so flag but don't rewrite them; consider intercepting the error at the app boundary.
+- **Download filename** `nota-<name>-<date>.json` (settings.tsx:448) uses bare `"nota"` — user sees this as a saved filename. Low-visibility but technically naked-Nota.
+- **`CUSTOM_KEY = "nota.custom_protocols"`** — localStorage key, not user-visible.
 
 **Low**
-- No API key needed — confirmed. All calls route through the app's own server functions, which hit openFDA anonymously (subject to openFDA's public rate limit; no key/backoff in code).
-- The interaction rate limit is 8 drugs × (8-1)/2 = 28 pairs, each doing a label fetch — 8 sequential fetches then O(n²) scanning; UI shows a single spinner, no progress.
-- Fake random search like `xyzabc123` → returns empty gracefully, no crash. ✓
-
-### PubMed (`/tools/pubmed` + `/api/tools/pubmed`)
-
-**Medium**
-- **NCBI E-utilities without an `api_key` or `tool`/`email` parameter** — NCBI documents 3 req/sec unauthenticated and *requires* the `tool` and `email` params. Under load NCBI will start returning 429s, which the app surfaces as "Search failed" with no retry. Register a `tool=nota-health` and add an operator email or expose a `NCBI_API_KEY` secret.
-- **Citation checker just re-runs a plain PubMed search** on the pasted claim text. There is no MeSH translation, no relevance scoring, and no attempt to flag studies as *supporting* vs *refuting* the claim — the label "Find related evidence" oversells what happens.
-- **Abstract parsing is regex-over-XML** (`<AbstractText[^>]*>...`). Multi-section abstracts concatenate without their `Label` attribute (Background/Methods/Results/Conclusions), so structured abstracts read as one wall of text. `AbstractText` containing HTML entities like `&#8211;` is not decoded.
-- **PMID article link.** `url` is `https://pubmed.ncbi.nlm.nih.gov/{id}/` — good. UI opens in new tab? Need to verify — the article-list component (below the truncated section) is what actually renders the link; check that `target="_blank" rel="noreferrer noopener"` is set.
-
-**Low**
-- Client posts up to `limit=12` for citation checker, `10` for search — hardcoded, no user control.
-- `parseYear` picks the first 4-digit number in `pubdate`, so `"2019 Nov-2020 Jan"` is parsed as 2019 rather than the article's actual publication year.
-- No caching; the same query re-runs every submit.
-- No API key needed — confirmed.
-
-### Provider Verification (`/tools/provider` + `/api/tools/provider`)
-
-**Medium**
-- **NPI `1003000126` is not actually a real active NPI** — it's the classic "test" NPI shape. The `test the tool` step will fail on the CMS registry unless the tester substitutes a real NPI. Not a bug in the app, but the test protocol needs a valid known NPI.
-- **State input is not validated as a two-letter code**; users can enter "California" and get a 400 from the CMS API — the app displays the raw `NPI 400` without guidance.
-- **Only `limit=20` results are returned and there is no pagination** — a name search for "Smith" is capped silently.
-- **`enumeration_date` and `status`** are shown raw; a deactivated provider (`status: "I"`) is not visually distinguished — a critical detail for verification.
-
-**Low**
-- No `first_name` alone search (backend requires `last_name`), but the UI's "By name" mode silently blocks with "Enter at least a last name."
-- No API key needed — confirmed.
-- Invalid NPI (fails the `^\d{10}$` regex) → clear client-side error before hitting the API. ✓
-- API error path returns `{ error: "NPI 400" }` — user sees "NPI 400", not a plain-language message.
-
-### ICD Lookup (`/tools/icd` + `/api/tools/icd`)
-
-**Critical**
-- **This is ICD-10-CM, not ICD-11.** The audit expects "ICD-11 code appears" for "type 2 diabetes mellitus"; the app returns `E11.9` (ICD-10-CM). The route file's own comment acknowledges ICD-11 requires OAuth and was intentionally swapped for ICD-10-CM. Either the audit spec is wrong or the requirement isn't met — flagging so someone decides. The footer text says so, but the audit criterion as written fails.
-
-**Medium**
-- **Chapter names are hand-rolled with a small regex list.** `D50-D89` blood/immune diseases work; `D65-D69` coagulation would too, but the pattern `^D[5-8]` matches `D80` fine and `D9x` falls through to *no category*. Codes like `N` (genitourinary) are labelled but sub-categories aren't. Cosmetic, not clinical.
-- **Parent code is the first segment before `.`** — for a 3-char code like `E11` the parent is set to the chapter letter `E`, which isn't an ICD entity. Displaying `E` as parent is misleading; should be null or the actual parent (e.g. `E10-E14`).
-- **`title` uses `row?.[1]` from NLM's tuple result** — the NLM `df=code,name` format actually returns `[code, name]`, so `row[0]=code`, `row[1]=name`. Correct — but title is not marked as "Long Description" vs "Short Description"; both are commonly needed for billing.
-
-**Low**
-- Search "hypertension" returns essential HTN (`I10`) plus lots of hypertensive-heart-disease codes; there is no filter to prioritise "primary code for term".
-- No API key needed — confirmed.
+- Root `head()` (`src/routes/__root.tsx:82`) title: `"Nota Health — Clinical Documentation Intelligence"`. Good, but page-level `head()` overrides typically set titles like `"Cases — Nota Health"` — reversed order (page — brand) inconsistent with the root (brand — tagline). Not wrong, just not uniform.
+- OG title (`__root.tsx:89`) `"Nota Health — Clinical Documentation Intelligence"` — matches audit requirement of "Nota Health" in shared link title. ✓
+- `LovableErrorOptions` / `reportLovableError` (`src/lib/lovable-error-reporting.ts`) are internal names only used by the platform error bridge; not visible to users. Fine as-is.
 
 ---
 
-## LANDING PAGE (signed out) — `/` (`src/routes/index.tsx`)
-
-**Critical**
-- **`GITHUB_URL` is literally `"https://github.com"`** (line 32). Every "View on GitHub" link — hero button (line 123), security/open-source section (line 757), footer (line 779, 821) — sends the user to the GitHub homepage, not the Nota Health repo. All four links fail the audit "GitHub repo in new tab" check.
-- **Compliance link on the landing security section goes to `/auth`** (line 703, `<Link to="/auth">Read the compliance overview</Link>`), not `/compliance`. The label reads "Read the compliance overview" but the destination is the sign-in page.
-- **Footer `<Link to="/compliance">`** (line 839) resolves to `/_authenticated/compliance`, which requires auth. A signed-out visitor clicking "Compliance" in the landing footer is redirected to `/auth`, not the compliance page. The "Compliance link in landing footer works" audit step fails for signed-out users.
+## LOGO
 
 **Medium**
-- **Signed-in users are auto-redirected to `/assistant`** in `useEffect` before the landing page renders. Correct for the app, but the audit's "Root URL loads landing page, not login redirect" holds only for signed-out visitors; if a session is present, they never see the landing. Worth flagging as behaviour, not a bug.
-- Root route `head()` sets `og:url` to `"/"` (relative). Social crawlers ignore relative `og:url`; needs an absolute URL or an origin-aware SSR head.
-- No `og:image` on `/`. Per project rules, leaf `og:image` may be omitted, but the landing is the canonical shareable URL and would benefit.
+- **`NotaMark` sizes.** Sidebar uses `size="sm"` → `h-5` (~20 px), not 28 px. Audit expects "28 px in sidebar" — currently ~20 px. The mark still reads as an N at 20 px, but not at the required size.
+- **QRS spike is drawn with a straight polyline** (`d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36"`). At small sizes the spike compresses and reads as noise rather than a heartbeat. Between the two verticals the peak/trough (`L20 -10 L22 30`) is centered but sharp — at `h-5` sidebar size the −10 baseline (12 units above cap) is barely visible.
+- **`viewBox="0 -12 40 52"`** — negative Y origin extends 12 units above the glyph so the QRS overshoot has room. Correct, but `NotaMark`'s default `className="h-6 w-auto"` inflates the width by ratio 40/52 → the mark is wider than square; a 28 × 28 sidebar slot will render as ~28 × ~36 px letterbox.
 
 **Low**
-- Hero pre-render shows a blank `<div className="min-h-screen bg-background" />` while `getSession()` resolves — flash of empty page before the landing shows for signed-out users, ~100–300 ms.
-- No client-side `noreferrer noopener` audit — confirmed present on the GitHub anchors that use plain `<a href>`.
+- Mark uses `text-primary` and inherits the teal from theme (`--primary`). Not "black or generic blue" — passes. Favicon (`public/favicon.svg`) hardcodes `#1b7a86` — same teal in hex form, so theme changes don't update the favicon.
+- No `<link rel="apple-touch-icon">` or `<meta name="theme-color">` in `__root.tsx` — the mark won't propagate to iOS home-screen or mobile browser chrome.
+- No generic healthcare symbols (no caduceus, no stethoscope glyph, no cross). ✓
 
 ---
 
-## COMPLIANCE PAGE — `/_authenticated/compliance`
+## DISCLAIMER
 
 **Critical**
-- **Route requires auth.** File lives under `src/routes/_authenticated/compliance.tsx`, so any unauthenticated click from the landing footer or hero-section CTA lands on `/auth` instead. The audit item "Compliance link in landing footer works" cannot succeed for a signed-out visitor. Fix by moving to a public route (`src/routes/compliance.tsx`) or duplicating a public marketing version.
+- **Landing page footer** (`src/routes/index.tsx:828`) reads just "Not a medical device" (four words in a `<FooterItem>` list). It is NOT the full "Nota Health is not a medical device. All AI outputs require review by a qualified healthcare professional." required. Audit item fails.
+- **Compliance page** (`src/routes/_authenticated/compliance.tsx`) does not render the exact disclaimer sentence at the bottom (previously flagged). Line 110 says "Nota Health is not a certified HIPAA-compliant service…" — that's a different sentence. Audit expects the standard clinical disclaimer; currently missing.
+- **Auth page** shows the disclaimer only inside the consent checkbox on sign-up (`auth.tsx:519`), not as a persistent footer. Sign-in visitors never see it.
+- **Gemini responses** — as flagged in a prior audit, `streamChat` throws for `provider === "google"`, so the model never emits a disclaimer at all. Audit item "Appears at end of every Gemini response" fails until Gemini streaming is implemented.
 
 **Medium**
-- **"All 4 sections" is really 4 sections: Data architecture, HIPAA readiness, Data residency, Enterprise compliance controls.** All render. ✓
-- **The checklist uses `CheckCircle2` (available=true) and empty `Circle` (available=false)** — matches the ✓ / ○ requirement.
-- **"Disclaimer at bottom" is not present** as a distinct block. There is a `Callout` under HIPAA readiness ("Nota Health does not provide a BAA…") but no page-level "for informational purposes only / not legal advice" disclaimer at the bottom. The audit expects one — currently missing.
+- **`AppShell` footer** (`src/components/app-shell.tsx:88-91`) renders the correct sentence — so Clinical Assistant, Cases, Extract, Protocols, Tools, Settings, Compliance all get it *because* they use `AppShell`. ✓
+- Compliance page uses `AppShell`, so it does get the AppShell footer at the bottom — but audit read the compliance-specific "disclaimer at bottom" as a page-level element, not the shared footer. Ambiguous; flag for the spec-owner.
+- System prompt says "End every response with this exact disclaimer on a new line" but the client also appends it defensively in `assistant.$threadId.tsx:213` ("Ensure disclaimer present"). If the model already appends it, users may see two copies. No dedup check found.
 
 **Low**
-- Copy says API keys are "encrypted at rest using AES-256" and "never logged" — this contradicts the actual Settings implementation, which (per earlier audits) stores keys in `profiles` in plaintext. Public marketing risk if a customer inspects the DB.
-- "Detected region for this session" shows the *browser* IANA timezone, not the server region where data lives. The label reads "where your data physically lives," which is misleading — the browser TZ ≠ data residency.
-- Compliance link in `src/components/app-sidebar.tsx` (line 261) is inside the `_authenticated` shell — works when signed in. ✓
+- Disclaimer sentence in the AppShell footer wraps at narrow widths and drops to two centered lines; readable but visually thin (`text-[0.7rem]`).
 
 ---
 
-## Summary of critical blockers
+## VISUAL THEMES
 
-1. openFDA query operator (`+` vs `+OR+`) — Drug DB + Interaction checker both return empty; interaction check is a *silent false-negative safety issue*.
-2. `GITHUB_URL = "https://github.com"` — every GitHub link on the landing goes to the wrong destination.
-3. Compliance link on the landing security section points to `/auth`; the compliance route itself lives under `_authenticated`, so the landing footer link is also blocked for signed-out users. Two separate issues, same symptom.
-4. ICD-10-CM is served where the audit expects ICD-11 — decide whether to adopt the WHO ICD-11 API (OAuth required) or amend the spec.
+**Medium**
+- **`bg-pattern-*` utilities** in `src/styles.css` are defined for `neural`, `grid` (Cases uses grid, not "document filing"), `lab`, `flow`, `hex` (Drug), `paper` (PubMed), `map` (Provider), `tree` (ICD). Naming mismatch vs audit:
+  - Cases audit calls for "document filing pattern"; app uses `bg-pattern-grid`. `grid` reads as a grid, not filing tabs.
+  - Drug audit calls for "molecular pattern"; app uses `bg-pattern-hex`. Hex ≈ benzene ring; passable but not explicit molecules.
+  - Provider audit calls for "network pattern"; app uses `bg-pattern-map`. Map lines ≠ network topology.
+- Patterns are single-utility CSS backgrounds; need to render-check the actual visual density (patterns not read in this pass).
 
-Everything else is Medium/Low quality-of-implementation.
+**Low**
+- **`AnimatedPromptCard`** on `/auth` right panel — assumed present, statistics visible in `STATS.map(...)`. ✓
+- **Compliance badges** on `/auth` right panel: `<ComplianceBadgeRow />` (auth.tsx:110) renders `ComplianceShield` (line 577) components — those are proper visual badge components (shield-shaped, iconized), not plain text. ✓
+- **Monospaced font usage**: ICD code chips use `font-mono text-[11px]` (tools.icd), NPI shown via `<Badge className="font-mono">` — good. Drug names, dosages: currently rendered in regular text — no monospaced treatment. Audit expects mono on drug names/dosages; currently not applied.
+- **Teal accent**: `--primary` teal, used on primary buttons and active states. Identifier chips (NPI, ICD, PMID) — NPI/ICD use outline badges without teal fill; identifiers not visually teal-tinted.
+- **Tablet 768 px**: cannot verify without a screenshot; `PageHeader`/`AppShell` uses `sm:px-10` and `max-w-5xl` — likely OK but not verified.
+
+---
+
+## SECURITY CROSS-CHECK
+
+**Medium**
+- **RLS**: `cases`, `case_members`, `case_documents`, `chat_threads`, `chat_messages`, `extractions` all appear in migrations with policies scoped to `owner_id = auth.uid()` (or `is_case_owner`/`is_case_member`). ✓ User B cannot SELECT User A's case. That means:
+  - Navigating to User A's case URL as User B → `useCase()` fetch returns no row → the loader maps this to `notFound()` (already flagged in a prior audit: transient errors also map to `notFound()`, which is a separate issue).
+  - DevTools Network tab as User B → the query returns `{data: null}` for the target case ID. No User A rows leak. ✓
+- **Extraction insert** (`create-extraction-dialog.tsx`) sets `user_id: userId` on insert — but the audit prior noted `extractions` policies are on `user_id` scoped to `auth.uid()`. Assuming the migration matches that, ✓.
+- **Audit log**: no dedicated `audit_log` table is present in the migrations grepped. The compliance page copy claims "Every data access event recorded in the audit log" but there is no audit log implementation. Audit-log audit item fails — either the copy is aspirational or the feature is missing.
+
+**Critical**
+- **Client-side Anthropic/OpenAI calls** send the full document body over the browser directly to `api.anthropic.com` / `api.openai.com` — outside Lovable Cloud, outside any RLS boundary. Not a User-A-to-User-B leak, but the compliance copy "Nota Health does not store AI conversation contents on any third-party server" is misleading: the conversation is transmitted to Anthropic/OpenAI directly and their retention policies apply.
+- **Deleted cases**: no `.filter("owner_id", ...)` check on the client, but RLS enforces server-side. If the client deletes a case then re-fetches, another user's cached React Query cache from before sign-out could theoretically flash on Back button; earlier audit noted sign-out doesn't clear React Query cache. Combine those two issues and User A's cached data can render for ~200 ms during User B's login. Actual data on-wire is fine.
+
+**Low**
+- Case URL structure `/cases/$caseId` uses raw UUIDs — non-enumerable but shareable. Fine given RLS.
+
+---
+
+## Summary of blockers
+
+1. Landing footer and compliance page do not carry the required exact disclaimer sentence.
+2. Naming leak: `"Connect Supabase in Lovable Cloud"` error strings are user-reachable.
+3. Sidebar mark is ~20 px, not the requested 28 px.
+4. Pattern names don't match audit taxonomy (grid vs filing, hex vs molecules, map vs network).
+5. Audit-log feature is claimed on the compliance page but not implemented.
+6. Gemini disclaimer requirement blocked by the unimplemented Gemini adapter (upstream from this audit).
