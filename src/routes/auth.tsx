@@ -213,7 +213,14 @@ function SignInForm({
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("invalid login")) {
+        toast.error("Wrong email or password. Check your credentials, or create an account if you're new.");
+      } else if (msg.includes("email not confirmed")) {
+        toast.error("Please confirm your email before signing in. Check your inbox.");
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
     toast.success("Signed in");
@@ -384,7 +391,14 @@ function SignUpForm({
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("user already")) {
+        toast.error("An account with this email already exists. Try signing in instead.");
+      } else if (msg.includes("password")) {
+        toast.error("Password does not meet requirements. Use at least 8 characters.");
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
     if (data.session) {
