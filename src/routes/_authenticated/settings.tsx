@@ -1068,13 +1068,14 @@ const PROVIDER_KEY_CARDS: Array<{
 ];
 
 function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
+  const rawPrefs = (profile.preferences ?? {}) as Record<string, unknown>;
+  const ollamaKey =
+    typeof rawPrefs.ollama_api_key === "string" ? (rawPrefs.ollama_api_key as string) : "";
   const configured =
     (profile.anthropic_api_key ? 1 : 0) +
     (profile.openai_api_key ? 1 : 0) +
-    (profile.google_api_key ? 1 : 0);
-  const rawPrefs = (profile.preferences ?? {}) as Record<string, unknown>;
-  const ollamaUrl =
-    typeof rawPrefs.ollama_base_url === "string" ? (rawPrefs.ollama_base_url as string) : "";
+    (profile.google_api_key ? 1 : 0) +
+    (ollamaKey ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -1083,23 +1084,19 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
           <CardTitle className="text-base">Bring your own keys</CardTitle>
           <CardDescription>
             Nota Health never proxies your prompts. Keys are stored encrypted and used
-            directly from your browser to call each provider. Add at least one cloud
-            key, or point at a local Ollama server to keep PHI on-device.
+            directly from your browser to call each provider.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2 pt-0 text-xs">
           <Badge variant={configured > 0 ? "default" : "outline"}>
-            {configured} of 3 cloud providers configured
-          </Badge>
-          <Badge variant={ollamaUrl ? "default" : "outline"}>
-            {ollamaUrl ? "Ollama connected" : "Ollama not configured"}
+            {configured} of 4 providers configured
           </Badge>
         </CardContent>
       </Card>
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Cloud providers</h3>
+          <h3 className="text-sm font-semibold text-foreground">Providers</h3>
           <span className="text-xs text-muted-foreground">Encrypted at rest</span>
         </div>
         <div className="grid gap-4">
@@ -1117,15 +1114,8 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
               initial={(profile[c.field] as string | null) ?? ""}
             />
           ))}
+          <OllamaApiKeyCard userId={userId} profile={profile} initial={ollamaKey} />
         </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Local runtime</h3>
-          <span className="text-xs text-muted-foreground">PHI stays on device</span>
-        </div>
-        <OllamaEndpointCard userId={userId} profile={profile} initial={ollamaUrl} />
       </section>
     </div>
   );
