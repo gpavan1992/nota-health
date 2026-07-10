@@ -41,6 +41,7 @@ function ExtractList() {
 
 
 
+  const qc = useQueryClient();
   const { data: extractions } = useQuery({
     queryKey: ["extractions", user.id],
     queryFn: async () => {
@@ -52,6 +53,27 @@ function ExtractList() {
       return data ?? [];
     },
   });
+
+  // Stuck-processing watchdog: anything still "processing" after 2 min
+  // is treated as failed (the browser tab that started it is gone).
+  useEffect(() => {
+    if (!extractions) return;
+    const cutoff = Date.now() - 2 * 60 * 1000;
+    const stuck = extractions.filter(
+      (e) => e.status === "processing" && new Date(e.created_at).getTime() < cutoff,
+    );
+    if (stuck.length === 0) return;
+    (async () => {
+      await supabase
+        .from("extractions")
+        .update({ status: "failed", error: "Timed out — please retry." })
+        .in(
+          "id",
+          stuck.map((s) => s.id),
+        );
+      qc.invalidateQueries({ queryKey: ["extractions", user.id] });
+    })();
+  }, [extractions, qc, user.id]);
 
   const filtered = useMemo(() => {
     let list = extractions ?? [];
