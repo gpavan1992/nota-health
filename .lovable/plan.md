@@ -1,95 +1,78 @@
+# Nota Health — Critical Fix Plan
 
-# Audit findings (no fixes applied)
+Scope is large. I'll work in 5 batches, each independently shippable. Critical items first, Medium second, Low deferred.
 
-## NAMING
+## Batch 1 — Foundations (unblocks everything else)
 
-**Medium**
-- **`NotaLogo` component (`src/components/nota-logo.tsx` line 78) renders the wordmark as `Nota` + `Health`**, correctly. But the standalone `NotaMark` is used bare (no wordmark) in several places — that's fine as a mark. However `src/components/site-header.tsx:15` uses "Open Nota Health" — good. No naked "Nota" as product name visible in user-facing copy. ✓
-- **`export const CLINICAL_SYSTEM_PROMPT` (`src/lib/chat-stream.ts:40`)** starts with `"You are Nota Health, a clinical documentation assistant…"` — good, and instructs the model to append the disclaimer to every response. ✓ But because Gemini streaming isn't wired (prior audit), Gemini responses never actually reach the disclaimer append path — the "appears at end of every Gemini response" audit item still fails for that reason.
-- **User-visible "Lovable" strings:** three occurrences in `src/integrations/supabase/{client,client.server,auth-middleware}.ts` — the error message `"Connect Supabase in Lovable Cloud."` is surface-able as a runtime error toast if env vars are missing. Per Lovable Cloud rules, "Supabase" and "Lovable" should not be shown to end users. Files are auto-generated, so flag but don't rewrite them; consider intercepting the error at the app boundary.
-- **Download filename** `nota-<name>-<date>.json` (settings.tsx:448) uses bare `"nota"` — user sees this as a saved filename. Low-visibility but technically naked-Nota.
-- **`CUSTOM_KEY = "nota.custom_protocols"`** — localStorage key, not user-visible.
+**Gemini streaming adapter** (Sections 2, 3, 6, 7, 8, 9)
+- Add `streamGemini()` to `src/lib/chat-stream.ts` using `generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse`
+- Route `provider === "google"` to it (removes the "not wired" throw)
+- Model label passed through to the assistant message metadata
+- Invalid-key → surface API error text via existing toast path (already handled by throw → catch)
 
-**Low**
-- Root `head()` (`src/routes/__root.tsx:82`) title: `"Nota Health — Clinical Documentation Intelligence"`. Good, but page-level `head()` overrides typically set titles like `"Cases — Nota Health"` — reversed order (page — brand) inconsistent with the root (brand — tagline). Not wrong, just not uniform.
-- OG title (`__root.tsx:89`) `"Nota Health — Clinical Documentation Intelligence"` — matches audit requirement of "Nota Health" in shared link title. ✓
-- `LovableErrorOptions` / `reportLovableError` (`src/lib/lovable-error-reporting.ts`) are internal names only used by the platform error bridge; not visible to users. Fine as-is.
+**Profile: per-provider keys** (Section 2)
+- Extend `profiles` with `google_api_key`, `openai_api_key` (migration + GRANT); keep existing `anthropic_api_key`
+- `assistant.$threadId.tsx` selects the key by provider of current model; banner + disabled input driven by "no key for current provider"
+- Model selector warning when switching to a provider without a key
+- Settings page: mask saved keys (`sk-•••••••abcd`), never render raw value after save
+- Never store keys in localStorage/sessionStorage — DB-only (already the case; audit and confirm)
 
----
+**Landing + auth redirects** (Sections 1, 11)
+- Root `/` already public — verify no auth redirect
+- `_authenticated` layout already redirects to `/auth`; verify `/cases` and `/assistant` covered
+- Sign-up: enforce 8+ chars, required fields, map Supabase "User already registered" to clear message
+- Sign-in: map "Invalid login credentials" → "Wrong email or password"
+- Session persistence already via Supabase; verify `persistSession: true`
 
-## LOGO
+## Batch 2 — Disclaimer + Naming + Logo (Sections 12, 13, 14)
 
-**Medium**
-- **`NotaMark` sizes.** Sidebar uses `size="sm"` → `h-5` (~20 px), not 28 px. Audit expects "28 px in sidebar" — currently ~20 px. The mark still reads as an N at 20 px, but not at the required size.
-- **QRS spike is drawn with a straight polyline** (`d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36"`). At small sizes the spike compresses and reads as noise rather than a heartbeat. Between the two verticals the peak/trough (`L20 -10 L22 30`) is centered but sharp — at `h-5` sidebar size the −10 baseline (12 units above cap) is barely visible.
-- **`viewBox="0 -12 40 52"`** — negative Y origin extends 12 units above the glyph so the QRS overshoot has room. Correct, but `NotaMark`'s default `className="h-6 w-auto"` inflates the width by ratio 40/52 → the mark is wider than square; a 28 × 28 sidebar slot will render as ~28 × ~36 px letterbox.
+- Replace landing footer `<FooterItem>"Not a medical device"</FooterItem>` with the full required sentence
+- Compliance page bottom: use the exact sentence
+- Auth page: add persistent footer disclaimer
+- AppShell footer already correct — verify
+- Grep for bare "Nota" as product name, replace with "Nota Health"
+- Grep user-visible "Lovable" strings in `client.ts` / `auth-middleware.ts` error toasts → replace with "Nota Health"
+- `NotaMark` in sidebar: bump to 28px, straighten QRS polyline so the spike reads at small sizes
+- Landing hero: add large `NotaMark`
+- Favicon already teal ECG-N — verify
 
-**Low**
-- Mark uses `text-primary` and inherits the teal from theme (`--primary`). Not "black or generic blue" — passes. Favicon (`public/favicon.svg`) hardcodes `#1b7a86` — same teal in hex form, so theme changes don't update the favicon.
-- No `<link rel="apple-touch-icon">` or `<meta name="theme-color">` in `__root.tsx` — the mark won't propagate to iOS home-screen or mobile browser chrome.
-- No generic healthcare symbols (no caduceus, no stethoscope glyph, no cross). ✓
+## Batch 3 — Cases + Documents (Sections 4, 5)
 
----
+- Cases: confirm React Query invalidation on create/rename/delete (no refresh)
+- Add confirmation dialog on delete
+- `cases.$caseId.tsx`: 404 boundary via `notFoundComponent` when case missing
+- Search: real-time client filter
+- Uploads: accept PDF/DOCX/TXT; reject PNG and >50MB with toast
+- Processing status: realtime channel or polling every 5s until terminal
+- Stuck-processing watchdog: server fn cron-style check (or client-side on load) marking >2min as `failed`
+- Delete during processing: cancel + row removal in one transaction
 
-## DISCLAIMER
+## Batch 4 — Extract + Protocols + Tools (Sections 6, 8, 9, 10)
 
-**Critical**
-- **Landing page footer** (`src/routes/index.tsx:828`) reads just "Not a medical device" (four words in a `<FooterItem>` list). It is NOT the full "Nota Health is not a medical device. All AI outputs require review by a qualified healthcare professional." required. Audit item fails.
-- **Compliance page** (`src/routes/_authenticated/compliance.tsx`) does not render the exact disclaimer sentence at the bottom (previously flagged). Line 110 says "Nota Health is not a certified HIPAA-compliant service…" — that's a different sentence. Audit expects the standard clinical disclaimer; currently missing.
-- **Auth page** shows the disclaimer only inside the consent checkbox on sign-up (`auth.tsx:519`), not as a persistent footer. Sign-in visitors never see it.
-- **Gemini responses** — as flagged in a prior audit, `streamChat` throws for `provider === "google"`, so the model never emits a disclaimer at all. Audit item "Appears at end of every Gemini response" fails until Gemini streaming is implemented.
+- `run-extraction.ts`: route through Gemini when key/provider is Google, use structured JSON output
+- Validate document + key before submit → clear inline errors
+- All 6 built-in protocols wired with real prompts producing structured tables
+- Protocols page → clicking opens Assistant with seeded prompt (already present, verify per-protocol focus)
+- Tools (Drug/PubMed/NPI/ICD): already server routes under `/api/tools/*` — verify no auth-key dependency, add empty-state on zero results, error boundary on 4xx/5xx
 
-**Medium**
-- **`AppShell` footer** (`src/components/app-shell.tsx:88-91`) renders the correct sentence — so Clinical Assistant, Cases, Extract, Protocols, Tools, Settings, Compliance all get it *because* they use `AppShell`. ✓
-- Compliance page uses `AppShell`, so it does get the AppShell footer at the bottom — but audit read the compliance-specific "disclaimer at bottom" as a page-level element, not the shared footer. Ambiguous; flag for the spec-owner.
-- System prompt says "End every response with this exact disclaimer on a new line" but the client also appends it defensively in `assistant.$threadId.tsx:213` ("Ensure disclaimer present"). If the model already appends it, users may see two copies. No dedup check found.
+## Batch 5 — Security cross-check (Section 15)
 
-**Low**
-- Disclaimer sentence in the AppShell footer wraps at narrow widths and drops to two centered lines; readable but visually thin (`text-[0.7rem]`).
+- Verify RLS on `cases`, `case_documents`, `chat_threads`, `chat_messages`, `extractions` (already `owner_id = auth.uid()`)
+- Sign-out: `queryClient.clear()` + `cancelQueries()` before `supabase.auth.signOut()`
+- Case detail route: `notFound()` on empty result (already-not-yours cases look identical to deleted)
+- Audit log: currently claimed on compliance page but no table exists. Either (a) create `audit_log` table + RLS + log auth/case events, or (b) remove the claim from compliance copy. **Recommend (b)** — smaller, honest, ships today. Ask if you want (a) instead.
 
----
+## Explicitly deferred (Low)
 
-## VISUAL THEMES
+- Pattern-name taxonomy in styles.css
+- Monospaced treatment for drug/dose fields
+- Tablet 768px layout QA
+- OG image generation
 
-**Medium**
-- **`bg-pattern-*` utilities** in `src/styles.css` are defined for `neural`, `grid` (Cases uses grid, not "document filing"), `lab`, `flow`, `hex` (Drug), `paper` (PubMed), `map` (Provider), `tree` (ICD). Naming mismatch vs audit:
-  - Cases audit calls for "document filing pattern"; app uses `bg-pattern-grid`. `grid` reads as a grid, not filing tabs.
-  - Drug audit calls for "molecular pattern"; app uses `bg-pattern-hex`. Hex ≈ benzene ring; passable but not explicit molecules.
-  - Provider audit calls for "network pattern"; app uses `bg-pattern-map`. Map lines ≠ network topology.
-- Patterns are single-utility CSS backgrounds; need to render-check the actual visual density (patterns not read in this pass).
+## Open questions before I start
 
-**Low**
-- **`AnimatedPromptCard`** on `/auth` right panel — assumed present, statistics visible in `STATS.map(...)`. ✓
-- **Compliance badges** on `/auth` right panel: `<ComplianceBadgeRow />` (auth.tsx:110) renders `ComplianceShield` (line 577) components — those are proper visual badge components (shield-shaped, iconized), not plain text. ✓
-- **Monospaced font usage**: ICD code chips use `font-mono text-[11px]` (tools.icd), NPI shown via `<Badge className="font-mono">` — good. Drug names, dosages: currently rendered in regular text — no monospaced treatment. Audit expects mono on drug names/dosages; currently not applied.
-- **Teal accent**: `--primary` teal, used on primary buttons and active states. Identifier chips (NPI, ICD, PMID) — NPI/ICD use outline badges without teal fill; identifiers not visually teal-tinted.
-- **Tablet 768 px**: cannot verify without a screenshot; `PageHeader`/`AppShell` uses `sm:px-10` and `max-w-5xl` — likely OK but not verified.
+1. **Audit log** — build the real table or remove the claim from Compliance? (Recommend remove.)
+2. **Gemini model list** — the current catalog has `google/gemini-*` gateway ids, but BYOK Gemini needs raw Google model names (e.g. `gemini-2.5-flash`). OK to add a mapping in `model-catalog.ts`?
+3. **Stuck-processing watchdog** — client-side sweep on load is simple and free; a cron server fn is more reliable. Pick one?
 
----
-
-## SECURITY CROSS-CHECK
-
-**Medium**
-- **RLS**: `cases`, `case_members`, `case_documents`, `chat_threads`, `chat_messages`, `extractions` all appear in migrations with policies scoped to `owner_id = auth.uid()` (or `is_case_owner`/`is_case_member`). ✓ User B cannot SELECT User A's case. That means:
-  - Navigating to User A's case URL as User B → `useCase()` fetch returns no row → the loader maps this to `notFound()` (already flagged in a prior audit: transient errors also map to `notFound()`, which is a separate issue).
-  - DevTools Network tab as User B → the query returns `{data: null}` for the target case ID. No User A rows leak. ✓
-- **Extraction insert** (`create-extraction-dialog.tsx`) sets `user_id: userId` on insert — but the audit prior noted `extractions` policies are on `user_id` scoped to `auth.uid()`. Assuming the migration matches that, ✓.
-- **Audit log**: no dedicated `audit_log` table is present in the migrations grepped. The compliance page copy claims "Every data access event recorded in the audit log" but there is no audit log implementation. Audit-log audit item fails — either the copy is aspirational or the feature is missing.
-
-**Critical**
-- **Client-side Anthropic/OpenAI calls** send the full document body over the browser directly to `api.anthropic.com` / `api.openai.com` — outside Lovable Cloud, outside any RLS boundary. Not a User-A-to-User-B leak, but the compliance copy "Nota Health does not store AI conversation contents on any third-party server" is misleading: the conversation is transmitted to Anthropic/OpenAI directly and their retention policies apply.
-- **Deleted cases**: no `.filter("owner_id", ...)` check on the client, but RLS enforces server-side. If the client deletes a case then re-fetches, another user's cached React Query cache from before sign-out could theoretically flash on Back button; earlier audit noted sign-out doesn't clear React Query cache. Combine those two issues and User A's cached data can render for ~200 ms during User B's login. Actual data on-wire is fine.
-
-**Low**
-- Case URL structure `/cases/$caseId` uses raw UUIDs — non-enumerable but shareable. Fine given RLS.
-
----
-
-## Summary of blockers
-
-1. Landing footer and compliance page do not carry the required exact disclaimer sentence.
-2. Naming leak: `"Connect Supabase in Lovable Cloud"` error strings are user-reachable.
-3. Sidebar mark is ~20 px, not the requested 28 px.
-4. Pattern names don't match audit taxonomy (grid vs filing, hex vs molecules, map vs network).
-5. Audit-log feature is claimed on the compliance page but not implemented.
-6. Gemini disclaimer requirement blocked by the unimplemented Gemini adapter (upstream from this audit).
+Approve and I'll start with Batch 1.

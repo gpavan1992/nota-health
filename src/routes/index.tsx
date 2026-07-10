@@ -825,7 +825,9 @@ function SiteFooter() {
           <FooterDot />
           <FooterItem>AGPL-3.0</FooterItem>
           <FooterDot />
-          <FooterItem>Not a medical device</FooterItem>
+          <FooterItem>
+            Nota Health is not a medical device. All AI outputs require review by a qualified healthcare professional.
+          </FooterItem>
           <FooterDot />
           <FooterItem>
             <Link to="/privacy" className="hover:text-foreground">Privacy</Link>

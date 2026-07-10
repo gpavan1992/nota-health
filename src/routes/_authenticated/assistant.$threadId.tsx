@@ -31,7 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
-import { streamChat, type WireMessage } from "@/lib/chat-stream";
+import { streamChat, getModelChoice, type WireMessage } from "@/lib/chat-stream";
 import { GroupedModelSelect } from "@/components/grouped-model-select";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
@@ -96,8 +96,15 @@ function AssistantThread() {
 
 
   const modelId = profile?.ai_model ?? "claude-sonnet-4-5";
-  const apiKey = profile?.anthropic_api_key ?? "";
+  const provider = (getModelChoice(modelId).provider ?? "anthropic") as "anthropic" | "openai" | "google";
+  const apiKey =
+    provider === "google"
+      ? (profile?.google_api_key ?? "")
+      : provider === "openai"
+        ? (profile?.openai_api_key ?? "")
+        : (profile?.anthropic_api_key ?? "");
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
+  const providerLabel = provider === "google" ? "Google Gemini" : provider === "openai" ? "OpenAI" : "Anthropic";
 
   async function loadCases() {
     if (caseList) return;
@@ -243,7 +250,7 @@ function AssistantThread() {
           <div className="mb-4 flex items-center justify-between rounded-md border border-warning/40 bg-warning/10 px-4 py-3">
             <div className="flex items-center gap-2 text-sm">
               <KeyRound className="h-4 w-4 text-warning-foreground" />
-              Add your API key to start chatting.
+              No {providerLabel} API key saved. Add one in Settings to use this model.
             </div>
             <Button asChild size="sm" variant="outline">
               <Link to="/settings">Open Settings</Link>
