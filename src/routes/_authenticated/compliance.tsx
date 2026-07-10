@@ -128,7 +128,7 @@ const CONTROLS: Array<{ label: string; available: boolean }> = [
   { label: "End-to-end encrypted document storage", available: true },
   { label: "Row-level database security", available: true },
   { label: "Encrypted API key storage", available: true },
-  { label: "Full audit log with timestamp, user, and action", available: true },
+  { label: "Full audit log with timestamp, user, and action — roadmap", available: false },
   { label: "Multi-factor authentication", available: true },
   { label: "Session management with automatic timeout", available: true },
   { label: "Data export for all user data", available: true },
