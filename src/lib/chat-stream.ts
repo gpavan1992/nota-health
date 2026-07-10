@@ -63,11 +63,73 @@ export async function streamChat({ apiKey, modelId, messages, onToken, signal }:
   if (choice.provider === "openai") {
     return streamOpenAI({ apiKey, model: choice.model, messages, onToken, signal });
   }
-  // Gemini streaming isn't wired to a BYOK path yet — surface a clear error
-  // instead of silently failing so the user knows to pick Anthropic or OpenAI.
-  throw new Error(
-    "Google Gemini is not yet wired to bring-your-own-key. Pick an Anthropic or OpenAI model, or add a Gemini adapter.",
-  );
+  if (choice.provider === "google") {
+    return streamGemini({ apiKey, model: choice.model, messages, onToken, signal });
+  }
+  throw new Error(`Unsupported provider: ${choice.provider}`);
+}
+
+async function streamGemini({
+  apiKey,
+  model,
+  messages,
+  onToken,
+  signal,
+}: {
+  apiKey: string;
+  model: string;
+  messages: WireMessage[];
+  onToken: (t: string) => void;
+  signal?: AbortSignal;
+}) {
+  // Google Generative Language API — SSE streaming.
+  // Uses the user's BYOK Gemini API key.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model,
+  )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+
+  const contents = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    signal,
+    body: JSON.stringify({
+      contents,
+      systemInstruction: { parts: [{ text: CLINICAL_SYSTEM_PROMPT }] },
+      generationConfig: { maxOutputTokens: 2048 },
+    }),
+  });
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => "");
+    // Surface Google's error message so the user knows what's wrong (e.g. invalid key).
+    let detail = text.slice(0, 400);
+    try {
+      const parsed = JSON.parse(text);
+      detail = parsed?.error?.message ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`Gemini error ${res.status}: ${detail}`);
+  }
+  return readSSE(res.body, (evt) => {
+    try {
+      const data = JSON.parse(evt);
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        for (const p of parts) {
+          if (typeof p.text === "string") onToken(p.text);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  });
 }
 
 async function streamAnthropic({
