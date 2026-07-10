@@ -146,6 +146,7 @@ function CaseDetailPage() {
             Last activity {formatDistanceToNow(new Date(c.last_activity_at), { addSuffix: true })}
           </p>
         </div>
+        {isOwner && <CaseActionsMenu c={c} />}
       </div>
 
       <Tabs defaultValue="documents" className="mt-10">
