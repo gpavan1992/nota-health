@@ -108,6 +108,10 @@ function AuthPage() {
         </div>
 
         <ComplianceBadgeRow />
+        <p className="mt-6 text-center text-[0.7rem] leading-relaxed text-muted-foreground">
+          Nota Health is not a medical device. All AI outputs require review by a
+          qualified healthcare professional.
+        </p>
       </div>
 
       {/* Right panel — social proof, desktop only */}

@@ -106,13 +106,18 @@ function CompliancePage() {
 
         <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p>
-            Nota Health is not a certified HIPAA-compliant service. It is architected
-            with HIPAA principles in mind and designed for self-hosted
-            enterprise deployments where the operator controls compliance. For
-            regulated clinical environments, consult your compliance officer
-            before deployment.
-          </p>
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">
+              Nota Health is not a medical device. All AI outputs require review by a qualified healthcare professional.
+            </p>
+            <p>
+              Nota Health is not a certified HIPAA-compliant service. It is architected
+              with HIPAA principles in mind and designed for self-hosted
+              enterprise deployments where the operator controls compliance. For
+              regulated clinical environments, consult your compliance officer
+              before deployment.
+            </p>
+          </div>
         </div>
       </div>
     </AppShell>

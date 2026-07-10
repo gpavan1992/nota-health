@@ -167,7 +167,7 @@ function ProductPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
           <div className="ml-3 flex items-center gap-2 text-xs text-muted-foreground">
             <NotaMark className="h-3.5 w-auto text-primary" />
-            <span className="font-mono">nota.app / assistant</span>
+            <span className="font-mono">notahealth.app / assistant</span>
           </div>
         </div>
 

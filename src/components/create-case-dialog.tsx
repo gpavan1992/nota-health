@@ -88,8 +88,21 @@ export function CreateCaseDialog({
   function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-    const names = files.map((f) => f.name);
-    setDocs((d) => Array.from(new Set([...d, ...names])));
+    const MAX_BYTES = 50 * 1024 * 1024;
+    const ALLOWED = /\.(pdf|docx|txt)$/i;
+    const accepted: string[] = [];
+    for (const f of files) {
+      if (f.size > MAX_BYTES) {
+        toast.error(`${f.name} is larger than 50 MB — file rejected.`);
+        continue;
+      }
+      if (!ALLOWED.test(f.name)) {
+        toast.error(`${f.name} is not a supported format. Use PDF, DOCX, or TXT.`);
+        continue;
+      }
+      accepted.push(f.name);
+    }
+    if (accepted.length) setDocs((d) => Array.from(new Set([...d, ...accepted])));
     e.target.value = "";
   }
 
@@ -208,10 +221,11 @@ export function CreateCaseDialog({
                 <input
                   type="file"
                   multiple
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   className="hidden"
                   onChange={handleFilePick}
                 />
-                <Plus className="h-3.5 w-3.5" /> Or select files
+                <Plus className="h-3.5 w-3.5" /> Or select files (PDF, DOCX, TXT — max 50 MB)
               </label>
             </div>
           </div>

@@ -23,7 +23,39 @@ import {
 export const Route = createFileRoute("/_authenticated/cases/$caseId")({
   head: () => ({ meta: [{ title: "Case — Nota Health" }] }),
   component: CaseDetailPage,
+  notFoundComponent: CaseNotFound,
+  errorComponent: CaseErrorBoundary,
 });
+
+function CaseNotFound() {
+  return (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="font-serif text-2xl font-medium text-foreground">Case not found</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This case may have been deleted, or you do not have access to view it.
+      </p>
+      <Button asChild className="mt-6" variant="outline">
+        <Link to="/cases">
+          <ArrowLeft className="h-4 w-4" /> Back to cases
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function CaseErrorBoundary({ error }: { error: Error }) {
+  return (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="font-serif text-2xl font-medium text-foreground">Could not load case</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <Button asChild className="mt-6" variant="outline">
+        <Link to="/cases">
+          <ArrowLeft className="h-4 w-4" /> Back to cases
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 function CaseDetailPage() {
   const { user } = Route.useRouteContext();
