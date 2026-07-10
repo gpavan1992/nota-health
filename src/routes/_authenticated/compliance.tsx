@@ -63,9 +63,9 @@ function CompliancePage() {
           <BulletList
             items={[
               "For self-hosted deployments, the operator controls all data residency.",
-              "PHI is never logged in audit trails — only resource IDs and event types are recorded, never document content or message text.",
+              "Row-level security scopes every read and write to the authenticated user — no cross-account access at the database layer.",
               "Access controlled by individual user authentication with optional MFA.",
-              "Every data access event recorded in the audit log with timestamp, user, and action type.",
+              "PHI is never sent to third-party model providers unless you configure your own API key for that provider.",
             ]}
           />
           <Callout>
