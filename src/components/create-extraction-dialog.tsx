@@ -157,8 +157,8 @@ export function CreateExtractionDialog({
 
     try {
       const result = await runExtraction({
-        apiKey: profile.anthropic_api_key,
-        modelId: profile.ai_model ?? "claude-sonnet",
+        apiKey,
+        modelId,
         protocolName: proto.name,
         columns: proto.columns as unknown as never,
         customInstruction: protocolId === "custom" ? customInstruction : undefined,
