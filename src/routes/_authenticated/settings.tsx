@@ -1068,13 +1068,14 @@ const PROVIDER_KEY_CARDS: Array<{
 ];
 
 function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
+  const rawPrefs = (profile.preferences ?? {}) as Record<string, unknown>;
+  const ollamaKey =
+    typeof rawPrefs.ollama_api_key === "string" ? (rawPrefs.ollama_api_key as string) : "";
   const configured =
     (profile.anthropic_api_key ? 1 : 0) +
     (profile.openai_api_key ? 1 : 0) +
-    (profile.google_api_key ? 1 : 0);
-  const rawPrefs = (profile.preferences ?? {}) as Record<string, unknown>;
-  const ollamaUrl =
-    typeof rawPrefs.ollama_base_url === "string" ? (rawPrefs.ollama_base_url as string) : "";
+    (profile.google_api_key ? 1 : 0) +
+    (ollamaKey ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -1083,23 +1084,19 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
           <CardTitle className="text-base">Bring your own keys</CardTitle>
           <CardDescription>
             Nota Health never proxies your prompts. Keys are stored encrypted and used
-            directly from your browser to call each provider. Add at least one cloud
-            key, or point at a local Ollama server to keep PHI on-device.
+            directly from your browser to call each provider.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2 pt-0 text-xs">
           <Badge variant={configured > 0 ? "default" : "outline"}>
-            {configured} of 3 cloud providers configured
-          </Badge>
-          <Badge variant={ollamaUrl ? "default" : "outline"}>
-            {ollamaUrl ? "Ollama connected" : "Ollama not configured"}
+            {configured} of 4 providers configured
           </Badge>
         </CardContent>
       </Card>
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Cloud providers</h3>
+          <h3 className="text-sm font-semibold text-foreground">Providers</h3>
           <span className="text-xs text-muted-foreground">Encrypted at rest</span>
         </div>
         <div className="grid gap-4">
@@ -1117,15 +1114,8 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
               initial={(profile[c.field] as string | null) ?? ""}
             />
           ))}
+          <OllamaApiKeyCard userId={userId} profile={profile} initial={ollamaKey} />
         </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Local runtime</h3>
-          <span className="text-xs text-muted-foreground">PHI stays on device</span>
-        </div>
-        <OllamaEndpointCard userId={userId} profile={profile} initial={ollamaUrl} />
       </section>
     </div>
   );
@@ -1250,7 +1240,7 @@ function ApiKeyCard({
   );
 }
 
-function OllamaEndpointCard({
+function OllamaApiKeyCard({
   userId,
   profile,
   initial,
@@ -1260,18 +1250,21 @@ function OllamaEndpointCard({
   initial: string;
 }) {
   const [value, setValue] = useState(initial);
+  const [reveal, setReveal] = useState(false);
   const update = useUpdateProfile(userId);
-  const hasUrl = Boolean(initial);
+  const hasKey = Boolean(initial);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
     const next = { ...((profile.preferences ?? {}) as Record<string, unknown>) };
-    if (trimmed) next.ollama_base_url = trimmed;
-    else delete next.ollama_base_url;
+    if (trimmed) next.ollama_api_key = trimmed;
+    else delete next.ollama_api_key;
+    // Clean up legacy base URL field so state stays tidy.
+    delete next.ollama_base_url;
     try {
       await update.mutateAsync({ preferences: next as never });
-      toast.success(trimmed ? "Ollama endpoint saved" : "Ollama endpoint removed");
+      toast.success(trimmed ? "Ollama key saved" : "Ollama key removed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     }
@@ -1283,75 +1276,66 @@ function OllamaEndpointCard({
         <ProviderMark provider="ollama" size="md" />
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base">Ollama (self-hosted)</CardTitle>
-            <Badge variant={hasUrl ? "default" : "outline"} className="text-[10px]">
-              {hasUrl ? "Connected" : "Not set"}
+            <CardTitle className="text-base">Ollama</CardTitle>
+            <Badge variant={hasKey ? "default" : "outline"} className="text-[10px]">
+              {hasKey ? "Connected" : "Not set"}
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            No API key required. Point at a running Ollama server on your device,
-            workstation, or private VPC. Requests never leave that network.
+            Powers Llama 3.1, Meditron, Mistral, and Qwen via Ollama&apos;s hosted
+            cloud. Get a key at{" "}
+            <a
+              href="https://ollama.com/settings/keys"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              ollama.com/settings/keys →
+            </a>
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={save} className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="ollama-url" className="text-xs text-muted-foreground">
-              Base URL
+            <Label htmlFor="ollama-key" className="text-xs text-muted-foreground">
+              API key
             </Label>
             <Input
-              id="ollama-url"
-              type="url"
-              inputMode="url"
+              id="ollama-key"
+              type={reveal ? "text" : "password"}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="http://localhost:11434"
+              placeholder="ollama-…"
               autoComplete="off"
               spellCheck={false}
               maxLength={300}
               className="font-mono text-sm"
             />
           </div>
-          <div className="rounded-md border border-border/70 bg-muted/40 p-3 text-xs text-muted-foreground">
-            <p className="mb-1 font-medium text-foreground">Quick setup</p>
-            <ol className="list-decimal space-y-0.5 pl-4">
-              <li>
-                Install Ollama from{" "}
-                <a
-                  href="https://ollama.com/download"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:text-foreground"
-                >
-                  ollama.com/download
-                </a>
-              </li>
-              <li>
-                Pull a clinical model, e.g.{" "}
-                <code className="rounded bg-background px-1 py-0.5 font-mono text-[11px]">
-                  ollama pull meditron
-                </code>
-              </li>
-              <li>Keep Ollama running and paste the server URL above.</li>
-            </ol>
-          </div>
           <div className="flex justify-end gap-2">
-            {hasUrl && value === initial && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setReveal((r) => !r)}
+              disabled={update.isPending}
+            >
+              {reveal ? "Hide" : "Show"}
+            </Button>
+            {hasKey && value === initial && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setValue("");
-                }}
+                onClick={() => setValue("")}
                 disabled={update.isPending}
               >
                 Clear
               </Button>
             )}
             <Button type="submit" size="sm" disabled={update.isPending}>
-              {update.isPending ? "Saving…" : "Save endpoint"}
+              {update.isPending ? "Saving…" : "Save key"}
             </Button>
           </div>
         </form>
