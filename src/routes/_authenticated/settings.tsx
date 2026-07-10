@@ -1072,20 +1072,32 @@ function ApiKeyCard({
   placeholder: string;
   initial: string;
 }) {
-  const [value, setValue] = useState(initial);
+  const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
+  const [editing, setEditing] = useState(!initial);
   const update = useUpdateProfile(userId);
+
+  const maskedPreview = initial
+    ? `${initial.slice(0, 4)}${"•".repeat(Math.max(4, Math.min(20, initial.length - 8)))}${initial.slice(-4)}`
+    : "";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
+    if (!trimmed) {
+      toast.error("Enter a key or press Cancel.");
+      return;
+    }
     if (trimmed.length > 300) {
       toast.error("That API key looks too long.");
       return;
     }
     try {
-      await update.mutateAsync({ [field]: trimmed || null });
+      await update.mutateAsync({ [field]: trimmed });
       toast.success(`${label} saved`);
+      setValue("");
+      setShow(false);
+      setEditing(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     }
@@ -1096,6 +1108,7 @@ function ApiKeyCard({
     try {
       await update.mutateAsync({ [field]: null });
       toast.success(`${label} removed`);
+      setEditing(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     }
@@ -1107,29 +1120,15 @@ function ApiKeyCard({
         <CardTitle className="text-base">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={save} className="space-y-3">
-          <div className="relative">
-            <Input
-              type={show ? "text" : "password"}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={placeholder}
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={300}
-              className="pr-10 font-mono text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => setShow((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-              aria-label={show ? "Hide key" : "Show key"}
-            >
-              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <div className="flex justify-end gap-2">
-            {initial && (
+        {!editing ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <KeyRound className="h-4 w-4 shrink-0 text-primary" />
+              <span className="truncate font-mono text-sm text-muted-foreground">
+                {maskedPreview}
+              </span>
+            </div>
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -1139,12 +1138,60 @@ function ApiKeyCard({
               >
                 Remove
               </Button>
-            )}
-            <Button type="submit" size="sm" disabled={update.isPending}>
-              {update.isPending ? "Saving…" : "Save"}
-            </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEditing(true)}
+              >
+                Replace
+              </Button>
+            </div>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={save} className="space-y-3">
+            <div className="relative">
+              <Input
+                type={show ? "text" : "password"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={placeholder}
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={300}
+                autoFocus
+                className="pr-10 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShow((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label={show ? "Hide key" : "Show key"}
+              >
+                {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex justify-end gap-2">
+              {initial && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setValue("");
+                    setShow(false);
+                    setEditing(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" size="sm" disabled={update.isPending}>
+                {update.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
       </CardContent>
     </Card>
   );
