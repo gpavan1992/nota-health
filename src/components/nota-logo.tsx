@@ -33,9 +33,9 @@ export function NotaMark({
         <path d="M4 0 V36" />
         {/* Right vertical */}
         <path d="M36 0 V36" />
-        {/* QRS diagonal */}
+        {/* QRS diagonal — baseline diagonal with a sharp heartbeat spike near the top */}
         <path
-          d="M4 0 L16 18 L18 22 L20 -10 L22 30 L24 22 L36 36"
+          d="M4 0 L17 20 L19 20 L20 4 L22 32 L23 20 L36 36"
           className={animate ? "nota-ecg-trace" : undefined}
         />
       </g>
@@ -57,9 +57,9 @@ export function NotaLogo({
   animate?: boolean;
 }) {
   const scale = {
-    sm: { mark: "h-5", word: "text-lg" },
-    md: { mark: "h-7", word: "text-2xl" },
-    lg: { mark: "h-9", word: "text-3xl" },
+    sm: { mark: "h-7", word: "text-lg" },
+    md: { mark: "h-8", word: "text-2xl" },
+    lg: { mark: "h-10", word: "text-3xl" },
   }[size];
 
   return (
