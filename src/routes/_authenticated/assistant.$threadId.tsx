@@ -250,7 +250,7 @@ function AssistantThread() {
           <div className="mb-4 flex items-center justify-between rounded-md border border-warning/40 bg-warning/10 px-4 py-3">
             <div className="flex items-center gap-2 text-sm">
               <KeyRound className="h-4 w-4 text-warning-foreground" />
-              Add your API key to start chatting.
+              No {providerLabel} API key saved. Add one in Settings to use this model.
             </div>
             <Button asChild size="sm" variant="outline">
               <Link to="/settings">Open Settings</Link>
