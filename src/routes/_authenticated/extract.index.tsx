@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, FileSearch, FolderOpen, Table as TableIcon } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
@@ -41,6 +41,7 @@ function ExtractList() {
 
 
 
+  const qc = useQueryClient();
   const { data: extractions } = useQuery({
     queryKey: ["extractions", user.id],
     queryFn: async () => {
@@ -52,6 +53,27 @@ function ExtractList() {
       return data ?? [];
     },
   });
+
+  // Stuck-processing watchdog: anything still "processing" after 2 min
+  // is treated as failed (the browser tab that started it is gone).
+  useEffect(() => {
+    if (!extractions) return;
+    const cutoff = Date.now() - 2 * 60 * 1000;
+    const stuck = extractions.filter(
+      (e) => e.status === "processing" && new Date(e.created_at).getTime() < cutoff,
+    );
+    if (stuck.length === 0) return;
+    (async () => {
+      await supabase
+        .from("extractions")
+        .update({ status: "failed", error: "Timed out — please retry." })
+        .in(
+          "id",
+          stuck.map((s) => s.id),
+        );
+      qc.invalidateQueries({ queryKey: ["extractions", user.id] });
+    })();
+  }, [extractions, qc, user.id]);
 
   const filtered = useMemo(() => {
     let list = extractions ?? [];
