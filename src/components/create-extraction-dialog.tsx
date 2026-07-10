@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { PROTOCOLS, getProtocol } from "@/lib/protocols";
+import { getModelChoice } from "@/lib/chat-stream";
 import { runExtraction } from "@/lib/run-extraction";
 import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
 
