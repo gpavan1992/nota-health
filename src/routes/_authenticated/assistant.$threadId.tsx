@@ -96,8 +96,15 @@ function AssistantThread() {
 
 
   const modelId = profile?.ai_model ?? "claude-sonnet-4-5";
-  const apiKey = profile?.anthropic_api_key ?? "";
+  const provider = (getModelChoice(modelId).provider ?? "anthropic") as "anthropic" | "openai" | "google";
+  const apiKey =
+    provider === "google"
+      ? (profile?.google_api_key ?? "")
+      : provider === "openai"
+        ? (profile?.openai_api_key ?? "")
+        : (profile?.anthropic_api_key ?? "");
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
+  const providerLabel = provider === "google" ? "Google Gemini" : provider === "openai" ? "OpenAI" : "Anthropic";
 
   async function loadCases() {
     if (caseList) return;
