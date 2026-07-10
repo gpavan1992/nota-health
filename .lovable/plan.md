@@ -1,62 +1,68 @@
 
 # Audit findings (no fixes applied)
 
-## AUTH
+## CASES
 
 **Critical**
-- **Assistant hardcodes Anthropic key regardless of provider.** `src/routes/_authenticated/assistant.$threadId.tsx` line ~118: `const apiKey = profile?.anthropic_api_key ?? "";`. Selecting a Gemini or OpenAI model still reads only the Anthropic key — the "add your API key" banner and send button gate on the wrong field. A user with only a Gemini key sees the banner permanently and cannot send.
-- **Sign-out does not clear React Query cache or cancel in-flight queries.** No `queryClient.cancelQueries()` / `queryClient.clear()` on sign-out; protected data can flash on next login and 401s storm after the session clears.
+- **Rename case is not implemented.** No edit UI on `cases.$caseId.tsx` and no `useRenameCase` mutation. Renaming "QA Test" → "Cardiology QA" cannot be performed by any user action. Test cannot pass.
+- **Delete case is not implemented.** No delete button, no confirmation dialog, no `useDeleteCase` mutation. Users can only remove cases via `PrivacyTab → "Delete all cases"` in Settings, which nukes every case they own. Per-case delete does not exist.
+- **"Search zzz → empty state" copy is wrong.** `EmptyState` shows *"No cases match this view."* only when a case exists; that's fine, but the same table always renders the (empty) mobile list below because `filtered.length > 0` gate is on the block AFTER the mobile block condition is also `filtered.length > 0` — actually correct. **However**, on desktop the empty state renders **inside** the `hidden md:block` wrapper's ELSE branch, so on mobile the empty state never shows when a case list exists but the search filter empties it. Mobile users searching "zzz" see a blank card, not the empty-state message.
 
 **Medium**
-- **No `onAuthStateChange` listener in the router root.** Auth state is read once via `getSession()` in `auth.tsx` and via `_authenticated/route.tsx`'s `beforeLoad`. Header/nav sign-in affordance is not reactive, and cross-tab sign-in/out doesn't update the current tab until a hard refresh.
-- **Sign-up has no client-side password strength check.** Only HTML `required` guards empty fields; "weak password → error" relies entirely on Supabase's server response. No inline validation, so the "empty fields → blocked" and "weak password → error" tests both fall back to whatever Supabase returns (and to native browser messages).
-- **Password-reset flow points at `/auth` instead of a dedicated `/reset-password` page.** `resetPasswordForEmail` uses `window.location.origin + "/auth"`. Per platform guidance a `/reset-password` route is required — without it, users clicking the email land signed-in on the auth page with no way to set a new password.
-- **Protected route gate is SSR-off + client-only redirect.** `_authenticated/route.tsx` uses `ssr: false` and `supabase.auth.getUser()` in `beforeLoad`. Direct navigation to `/cases` or `/assistant` while signed out will briefly render nothing before redirecting; acceptable but the redirect flash is user-visible.
+- **Case-type filter is missing.** UI has "All / Mine / Shared" but no filter for Patient vs Research; the test relies only on visible list so this is not a blocker, but the spec implies type is meaningful.
+- **`useCase()` maps a fetch error to `notFound()`**: any transient RLS/network error on `cases.$caseId.tsx` looks like a not-found. Navigating to a deleted case URL will not crash (good), but a real error is misreported as 404.
+- **RLS on `cases` for cross-user isolation is untested here.** Table has 4 policies but there's no owner-scope check in the loader — relies entirely on RLS. Any policy regression exposes rows across users. Recommend an explicit `eq("owner_id", ...)` or membership check in `fetchCasesWithCounts` as defense-in-depth.
 
 **Low**
-- Sign-in error messages are raw Supabase strings (e.g. "Invalid login credentials") — same message for wrong password and unregistered email, so "clear error" for each case is not truly distinguishable.
-- `auth.tsx` renders a blank `min-h-screen` div while `ready` is false → visible white/blank flash on refresh before redirect.
+- Create-case flow only adds document **names** (see Documents section) — no actual file storage.
+- "Members" adds an email but never triggers an invite email; recipient has no signal.
+- Search is client-side only over the currently-loaded page; fine for small lists.
 
 ---
 
-## GEMINI API KEY (Settings → API Keys)
+## DOCUMENTS
 
 **Critical**
-- **Keys are stored in plaintext in the `profiles` table and sent plaintext over the wire.** `ApiKeyCard.save()` does `update.mutateAsync({ [field]: trimmed })` straight to Supabase. The UI claims "Keys are encrypted in storage" and "encrypted at rest and never logged" (Privacy tab) — both statements are false. DevTools → Network on save will show the raw key in the PATCH body to `/rest/v1/profiles`. DevTools → Application → IndexedDB / React Query cache will also contain the plaintext value.
-- **Refresh re-hydrates the plaintext key into the input, not a mask.** `ApiKeyCard` initializes `useState(initial)` from `profile.google_api_key`. Toggling the eye icon reveals the real key; even with the eye off, the DOM `<input type="password">` value is the real key (visible via inspector). There is no server-side masking (last-4 only) pattern.
+- **There is no document upload/processing pipeline at all.**
+  - `case_documents` table columns: `id, case_id, name, created_at`. No `mime_type`, `size_bytes`, `status`, `storage_path`, `content_text`, `error`.
+  - `CreateCaseDialog.handleFilePick` reads only `file.name` — the actual PDF/DOCX/TXT bytes are discarded; nothing is uploaded to Supabase Storage.
+  - No storage bucket for case documents (only `avatars` exists).
+  - No status field → no "Processing", "Ready", or "Failed" states can be shown.
+  - No file-type validation → PNG cannot be "rejected with error"; it's accepted as a name.
+  - No size validation → 50MB rejection does not happen; the input has no `accept=` and no size check.
+  - No realtime subscription → nothing updates without refresh.
+  - No timeout worker → nothing can "auto-fail" a stuck document at 2 minutes.
+  - No per-document delete UI on `cases.$caseId.tsx`; the documents tab is read-only.
+
+  **Every single Documents test case is unimplementable against the current build.**
 
 **Medium**
-- **Model selector does not warn when the chosen model has no matching key.** `GroupedModelSelect` just persists `ai_model`; nothing cross-checks `profile.google_api_key` / `openai_api_key` / `anthropic_api_key`. Selecting "Claude Sonnet 4.5" with no Anthropic key silently saves; the failure only surfaces later at send time via the (wrong) Anthropic-only banner.
-- **"Delete all keys → assistant blocks input" only works for Anthropic.** Because the assistant reads `anthropic_api_key`, deleting the Google key while an Anthropic key exists still shows no banner even when the selected model is Gemini; and deleting only the Anthropic key while keeping a Gemini key wrongly shows the banner.
-- **Remove button visibility is stale.** `{initial && <Button …>Remove</Button>}` uses the prop captured at first render. After clicking Remove, `initial` is still truthy until the profile query invalidates and the parent re-renders, so the button lingers briefly on a now-empty field.
-- **No format validation.** Any string ≤300 chars saves as a "Gemini key", including obvious junk like `"test"`; no `AIza…` prefix check.
+- Even the "add document by name" flow in `CreateCaseDialog` accepts arbitrary text (`docInput`) with no dedup case-insensitivity and no length below the 200-char toast beyond that check.
 
 **Low**
-- Toast on save uses the human label ("Google (Gemini) API Key saved") — fine, but no confirmation that the key was actually accepted by Google (no test-call ping).
-- `autoComplete="off"` on the input is not honored by all browsers for `type="password"`; consider `new-password`.
+- Document list on the case detail page shows filename + created_at only; no source, uploader, or size (moot until upload exists).
 
 ---
 
-## GEMINI CONNECTIVITY
+## DOCUMENT + GEMINI CROSS-CHECK
 
 **Critical**
-- **Gemini streaming is not implemented.** `src/lib/chat-stream.ts` `streamChat()` throws for `provider === "google"`:
-  > "Google Gemini is not yet wired to bring-your-own-key. Pick an Anthropic or OpenAI model, or add a Gemini adapter."
-  Sending "Hello, are you working?" with a Gemini model selected will throw immediately — no streaming response, no model label rendered as "Gemini", the assistant surfaces the error via `toast.error` and leaves an empty assistant bubble. The entire "Gemini connectivity" test section cannot pass as built.
-- **Because the assistant also gates on `anthropic_api_key`, a user with only a Gemini key can't even reach the streaming call** — they'll be blocked by the banner first. So the Gemini path has two independent blockers.
+- **No document-content pipeline exists.** With `case_documents` storing only a name, there is nothing for the assistant to read. Even the existing "Cases" popover in the assistant composer pushes documents into `attachments` with `text: ""` (see `assistant.$threadId.tsx` `linkCase()`). The model receives an empty document block — it cannot answer "What medications are listed in this document?" from the file.
+- **No "document in scope" panel in the Clinical Assistant.** The assistant has a `Cases` popover that dumps all case documents into the message as empty-text stubs. There is no per-document checkbox, no scope UI, no way to "uncheck document from scope."
+- **Gemini streaming is not wired** (already flagged in prior audit). `chat-stream.ts` throws for `provider === "google"`. Even if documents had content, the Gemini path errors before any response.
+- **Assistant only reads `profile.anthropic_api_key`** regardless of selected model (already flagged). A user with only a Gemini key can't send.
 
 **Medium**
-- **Invalid-key error handling for Gemini is untested by design** — the adapter never runs. When Gemini is wired, the current `streamAnthropic` / `streamOpenAI` pattern surfaces the provider's raw error body truncated to 300 chars; acceptable but not user-friendly (no "Your Gemini key was rejected — check Settings" mapping).
-- **Model label in the UI is derived from `profile.ai_model`, not from the streaming response.** So even once Gemini works, "model label shows Gemini" only reflects the selector, not what actually answered. If the provider silently falls back, the UI would lie.
+- Even if a document's content were attached, the current pattern inlines it into the user message (up to 50 KB per file, see `handleFile` in the assistant), then relies on the model to find medications. There is no chunking, no retrieval, no citation of the source doc — for a discharge summary PDF that exceeds 50 KB after text extraction, content is silently truncated.
+- No PDF/DOCX text extraction library is included. The assistant's file input has `accept=".txt,.md,.csv,.json,.text"` — PDF is not even accepted at the composer.
 
 **Low**
-- `MODEL_CHOICES` in `chat-stream.ts` types provider as `"anthropic" | "openai" | "google"` but the catalog now also has `"ollama"` — TypeScript will accept it at runtime but the cast loses the Ollama branch, and `getModelChoice` falls back to Claude Sonnet 4.5 for any Ollama model, silently misrouting.
+- No indication in assistant responses of which document was used (no citation / source-highlight).
 
 ---
 
-## Cross-cutting
+## Summary
 
-**Medium**
-- **Privacy copy oversells security.** Settings → Privacy claims "Your API keys are encrypted at rest and never logged" and API Keys tab says "Keys are encrypted in storage." Neither is true with the current schema. This is a compliance-risk statement for a healthcare product.
-- **No `/reset-password` route exists** (see Auth Medium above) — same finding, cross-listed because it also affects the "keys persist across sessions" story if users get locked out.
-
+Cases: rename, delete, and mobile empty-state are missing (Critical/Critical/Low).
+Documents: the entire upload → storage → parsing → status pipeline does not exist; the "documents" feature today is a text-only tag list.
+Doc + Gemini: cannot be tested end-to-end — Gemini adapter, key gating, document scope UI, and content extraction are all absent.
