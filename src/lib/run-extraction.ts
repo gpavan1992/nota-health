@@ -165,6 +165,39 @@ async function callOpenAIJSON(
   return text;
 }
 
+async function callGeminiJSON(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  images: ImgDoc[],
+): Promise<string> {
+  const parts: unknown[] = [{ text: prompt }];
+  for (const d of images) {
+    if (!d.image) continue;
+    parts.push({
+      inline_data: { mime_type: d.image.mediaType, data: d.image.data },
+    });
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model,
+  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts }],
+      generationConfig: { responseMimeType: "application/json" },
+    }),
+  });
+  if (!res.ok) throw new Error(`Google ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts
+    ?.map((p: { text?: string }) => p?.text ?? "")
+    .join("");
+  if (typeof text !== "string" || !text) throw new Error("Empty Google response");
+  return text;
+}
+
 function safeParseJSON(text: string): { columns: unknown[]; rows: unknown[] } | null {
   const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   try {
