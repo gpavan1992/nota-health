@@ -189,3 +189,44 @@ export function useCreateCase() {
     },
   });
 }
+
+export function useRenameCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      caseId: string;
+      name: string;
+      case_ref: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from("cases")
+        .update({
+          name: input.name.trim(),
+          case_ref: input.case_ref?.trim() || null,
+        })
+        .eq("id", input.caseId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["cases"] });
+      qc.invalidateQueries({ queryKey: ["case", vars.caseId] });
+    },
+  });
+}
+
+export function useDeleteCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (caseId: string) => {
+      const { error } = await supabase.from("cases").delete().eq("id", caseId);
+      if (error) throw error;
+      return caseId;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cases"] });
+    },
+  });
+}
