@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { PROTOCOLS, getProtocol } from "@/lib/protocols";
+import { getModelChoice } from "@/lib/chat-stream";
 import { runExtraction } from "@/lib/run-extraction";
 import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
 
@@ -108,11 +109,28 @@ export function CreateExtractionDialog({
 
   async function handleCreate() {
     if (!name.trim()) return toast.error("Give it a name.");
-    if (!profile?.anthropic_api_key) return toast.error("Add your API key in Settings.");
     if (docs.length === 0) return toast.error("Add at least one document.");
     if (docs.some((d) => d.parsing)) return toast.error("Wait for documents to finish parsing.");
     const usable = docs.filter((d) => d.text.trim().length > 0 || d.image);
     if (usable.length === 0) return toast.error("No readable content in the attached files.");
+
+    const modelId = profile?.ai_model ?? "claude-sonnet";
+    const choice = getModelChoice(modelId);
+    const apiKey =
+      choice.provider === "anthropic"
+        ? profile?.anthropic_api_key
+        : choice.provider === "openai"
+          ? profile?.openai_api_key
+          : profile?.google_api_key;
+    if (!apiKey) {
+      const providerLabel =
+        choice.provider === "anthropic"
+          ? "Anthropic"
+          : choice.provider === "openai"
+            ? "OpenAI"
+            : "Google";
+      return toast.error(`Add your ${providerLabel} API key in Settings.`);
+    }
 
     setBusy(true);
     const proto = getProtocol(protocolId);
@@ -139,8 +157,8 @@ export function CreateExtractionDialog({
 
     try {
       const result = await runExtraction({
-        apiKey: profile.anthropic_api_key,
-        modelId: profile.ai_model ?? "claude-sonnet",
+        apiKey,
+        modelId,
         protocolName: proto.name,
         columns: proto.columns as unknown as never,
         customInstruction: protocolId === "custom" ? customInstruction : undefined,

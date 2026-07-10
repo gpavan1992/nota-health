@@ -71,6 +71,8 @@ ${docsBlock || "(no text documents attached)"}${imageList}`;
   let raw: string;
   if (choice.provider === "anthropic") {
     raw = await callAnthropicJSON(p.apiKey, choice.model, prompt, imageDocs);
+  } else if (choice.provider === "google") {
+    raw = await callGeminiJSON(p.apiKey, choice.model, prompt, imageDocs);
   } else {
     raw = await callOpenAIJSON(p.apiKey, choice.model, prompt, imageDocs);
   }
@@ -160,6 +162,39 @@ async function callOpenAIJSON(
   const data = await res.json();
   const text = data?.choices?.[0]?.message?.content;
   if (typeof text !== "string") throw new Error("Empty OpenAI response");
+  return text;
+}
+
+async function callGeminiJSON(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  images: ImgDoc[],
+): Promise<string> {
+  const parts: unknown[] = [{ text: prompt }];
+  for (const d of images) {
+    if (!d.image) continue;
+    parts.push({
+      inline_data: { mime_type: d.image.mediaType, data: d.image.data },
+    });
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model,
+  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts }],
+      generationConfig: { responseMimeType: "application/json" },
+    }),
+  });
+  if (!res.ok) throw new Error(`Google ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts
+    ?.map((p: { text?: string }) => p?.text ?? "")
+    .join("");
+  if (typeof text !== "string" || !text) throw new Error("Empty Google response");
   return text;
 }
 

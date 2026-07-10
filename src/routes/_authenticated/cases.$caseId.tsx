@@ -1,9 +1,13 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, FileText, Loader2, MessageSquareText, Users } from "lucide-react";
+import { useState } from "react";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, FileText, Loader2, MessageSquareText, MoreHorizontal, Pencil, Trash2, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -13,10 +17,36 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   useCase,
   useCaseDocuments,
   useCaseMembers,
   useCaseConversations,
+  useRenameCase,
+  useDeleteCase,
   caseTypeLabel,
 } from "@/hooks/use-cases";
 
@@ -116,6 +146,7 @@ function CaseDetailPage() {
             Last activity {formatDistanceToNow(new Date(c.last_activity_at), { addSuffix: true })}
           </p>
         </div>
+        {isOwner && <CaseActionsMenu c={c} />}
       </div>
 
       <Tabs defaultValue="documents" className="mt-10">
@@ -244,3 +275,143 @@ function EmptyRow({ label }: { label: string }) {
     </div>
   );
 }
+
+type CaseHeader = {
+  id: string;
+  name: string;
+  case_ref: string | null;
+};
+
+function CaseActionsMenu({ c }: { c: CaseHeader }) {
+  const navigate = useNavigate();
+  const rename = useRenameCase();
+  const remove = useDeleteCase();
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [name, setName] = useState(c.name);
+  const [caseRef, setCaseRef] = useState(c.case_ref ?? "");
+
+  function openRename() {
+    setName(c.name);
+    setCaseRef(c.case_ref ?? "");
+    setRenameOpen(true);
+  }
+
+  async function submitRename() {
+    if (!name.trim()) {
+      toast.error("Case name cannot be empty");
+      return;
+    }
+    try {
+      await rename.mutateAsync({
+        caseId: c.id,
+        name,
+        case_ref: caseRef.trim() ? caseRef : null,
+      });
+      toast.success("Case updated");
+      setRenameOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update case");
+    }
+  }
+
+  async function submitDelete() {
+    try {
+      await remove.mutateAsync(c.id);
+      toast.success("Case deleted");
+      setDeleteOpen(false);
+      navigate({ to: "/cases" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete case");
+    }
+  }
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon" aria-label="Case actions">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => openRename()}>
+            <Pencil className="h-4 w-4" /> Rename case
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" /> Delete case
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename case</DialogTitle>
+            <DialogDescription>
+              Update the case name or reference identifier.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="case-name">Case name</Label>
+              <Input
+                id="case-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="case-ref">Case reference (optional)</Label>
+              <Input
+                id="case-ref"
+                value={caseRef}
+                onChange={(e) => setCaseRef(e.target.value)}
+                placeholder="e.g. MRN-00123"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitRename} disabled={rename.isPending}>
+              {rename.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this case?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes <span className="font-medium text-foreground">{c.name}</span>{" "}
+              along with its documents, members, and conversations. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                submitDelete();
+              }}
+              disabled={remove.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {remove.isPending ? "Deleting…" : "Delete case"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
