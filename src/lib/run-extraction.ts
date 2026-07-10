@@ -71,6 +71,8 @@ ${docsBlock || "(no text documents attached)"}${imageList}`;
   let raw: string;
   if (choice.provider === "anthropic") {
     raw = await callAnthropicJSON(p.apiKey, choice.model, prompt, imageDocs);
+  } else if (choice.provider === "google") {
+    raw = await callGeminiJSON(p.apiKey, choice.model, prompt, imageDocs);
   } else {
     raw = await callOpenAIJSON(p.apiKey, choice.model, prompt, imageDocs);
   }
