@@ -178,11 +178,12 @@ function ArticleList({ articles, emptyLabel }: { articles: Article[]; emptyLabel
         <li key={a.pmid} className="rounded-md border border-border p-3">
           <a
             href={a.url}
-            target="_blank"
-            rel="noreferrer noopener external"
+            target="_top"
+            rel="external"
             onClick={(e) => {
+              if (window.top === window.self) return;
               e.preventDefault();
-              window.open(a.url, "_blank", "noopener,noreferrer");
+              window.top.location.href = a.url;
             }}
             className="group inline-flex items-start gap-1.5 font-medium text-foreground hover:text-primary"
           >
