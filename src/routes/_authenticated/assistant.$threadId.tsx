@@ -265,35 +265,40 @@ function AssistantThread() {
       content = `Attached documents:\n\n${docsBlock}\n\nQuestion:\n${trimmed}`;
     }
 
-    // Build execution steps
+    // Build standardized execution steps (Mike-style)
     const steps: ChatStep[] = [];
+    const readableDocs = currentAttachments.filter((a) => a.text && a.text.trim().length > 0);
+    const emptyDocs = currentAttachments.filter((a) => a.empty);
+
     for (const a of currentAttachments) {
+      const isPdf = /\.pdf$/i.test(a.name);
       steps.push({
         kind: "read",
         label: `Read ${a.name}`,
         status: a.empty ? "warn" : "ok",
         detail: a.empty
-          ? "No extractable text found. The file may be a scanned image."
-          : `Extracted ~${a.text.length.toLocaleString()} characters.`,
+          ? isPdf
+            ? "PDF text extraction not supported — this file appears to be a scanned image with no selectable text layer. Upload a text-based PDF or run OCR first."
+            : "No extractable text found in this file."
+          : `Extracted ~${a.text.length.toLocaleString()} characters across ${Math.max(1, Math.ceil(a.text.length / 3000))} section(s).`,
       });
     }
-    if (currentAttachments.length > 0) {
-      steps.push({
-        kind: "thought",
-        label: "Thought process",
-        status: "ok",
-        detail: `Reviewing ${currentAttachments.length} document${currentAttachments.length === 1 ? "" : "s"} for the question:\n"${trimmed}"`,
-      });
 
-      // Keyword search hits
+    if (currentAttachments.length > 0) {
+      const analyzeDetail = [
+        `**Analyzing Document Structure**`,
+        `Reviewing ${currentAttachments.length} attached document${currentAttachments.length === 1 ? "" : "s"} (${readableDocs.length} readable, ${emptyDocs.length} without extractable text) to answer:`,
+        `"${trimmed}"`,
+      ].join("\n");
+      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: analyzeDetail });
+
       const keywords = trimmed
         .toLowerCase()
         .split(/[^a-z0-9]+/i)
         .filter((w) => w.length > 3)
         .slice(0, 3);
       for (const kw of keywords) {
-        for (const a of currentAttachments) {
-          if (!a.text) continue;
+        for (const a of readableDocs) {
           const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
           const matches = a.text.match(re)?.length ?? 0;
           steps.push({
@@ -303,7 +308,11 @@ function AssistantThread() {
           });
         }
       }
-      steps.push({ kind: "thought", label: "Thought process", status: "ok" });
+
+      const synthDetail = emptyDocs.length && !readableDocs.length
+        ? `**Confirming Lack of Text**\nAll attached files returned no extractable text. Preparing a message that OCR or a text-based PDF is required.`
+        : `**Synthesizing Answer**\nGrounding response strictly in the extracted document text and preparing structured output with citations.`;
+      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: synthDetail });
     }
 
     const { data: userMsg, error: userErr } = await supabase
