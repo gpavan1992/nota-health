@@ -9,8 +9,8 @@ export const Route = createFileRoute("/api/tools/drug")({
         if (!q) return Response.json({ error: "Missing query" }, { status: 400 });
 
         const escaped = q.replace(/["\\]/g, "");
-        const search = `(openfda.brand_name:"${escaped}"+openfda.generic_name:"${escaped}")`;
-        const api = `https://api.fda.gov/drug/label.json?search=${encodeURIComponent(search)}&limit=1`;
+        const search = `(openfda.brand_name:"${escaped}"+OR+openfda.generic_name:"${escaped}"+OR+openfda.substance_name:"${escaped}")`;
+        const api = `https://api.fda.gov/drug/label.json?search=${search}&limit=1`;
         try {
           const res = await fetch(api, { headers: { accept: "application/json" } });
           if (res.status === 404) return Response.json({ results: [] });
