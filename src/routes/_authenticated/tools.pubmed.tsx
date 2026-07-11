@@ -181,9 +181,10 @@ function ArticleList({ articles, emptyLabel }: { articles: Article[]; emptyLabel
             target="_top"
             rel="external"
             onClick={(e) => {
-              if (window.top === window.self) return;
+              const topWindow = window.top;
+              if (!topWindow || topWindow === window.self) return;
               e.preventDefault();
-              window.top.location.href = a.url;
+              topWindow.location.href = a.url;
             }}
             className="group inline-flex items-start gap-1.5 font-medium text-foreground hover:text-primary"
           >
