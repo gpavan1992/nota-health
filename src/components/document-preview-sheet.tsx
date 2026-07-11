@@ -52,7 +52,17 @@ export function DocumentPreviewSheet({
           ) : isImage && source.url ? (
             <img src={source.url} alt={source.name} className="mx-auto max-w-full" />
           ) : isPdf && source.url ? (
-            <iframe src={source.url} title={source.name} className="h-full min-h-[80vh] w-full border-0" />
+            <iframe
+              src={`${source.url}#toolbar=1&view=FitH`}
+              title={source.name}
+              className="h-full min-h-[80vh] w-full border-0"
+            />
+          ) : source.url ? (
+            <iframe
+              src={source.url}
+              title={source.name}
+              className="h-full min-h-[80vh] w-full border-0 bg-white"
+            />
           ) : source.text ? (
             <pre className="whitespace-pre-wrap p-4 text-xs leading-relaxed text-foreground">{source.text}</pre>
           ) : (
