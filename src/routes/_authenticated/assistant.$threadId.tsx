@@ -670,11 +670,18 @@ function MessageBubble({
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
   }, [attachments]);
 
-  async function handleCopy() {
+  async function handleCopyCitations() {
+    if (uniqueAttachments.length === 0) {
+      toast.info("No citations to copy");
+      return;
+    }
+    const text = uniqueAttachments
+      .map((a, i) => `${i + 1}. ${a.name}${a.count > 1 ? ` (×${a.count})` : ""}`)
+      .join("\n");
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied");
+      toast.success("Citations copied");
       setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Copy failed");
