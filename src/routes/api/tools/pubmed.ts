@@ -38,7 +38,7 @@ async function searchPubmed(query: string, limit: number) {
       year: parseYear(rec.pubdate as string | undefined),
       authors,
       abstract: abstracts.get(id) ?? "",
-      url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+      url: buildPubmedArticleUrl(id),
     };
   });
 
@@ -84,6 +84,10 @@ function parseYear(v: string | undefined): number | null {
   if (!v) return null;
   const m = /\d{4}/.exec(v);
   return m ? parseInt(m[0], 10) : null;
+}
+
+function buildPubmedArticleUrl(pmid: string) {
+  return `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
 }
 
 async function sourceView(pmid: string) {
