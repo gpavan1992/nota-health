@@ -36,6 +36,8 @@ import {
 } from "@/components/document-preview-sheet";
 import { parseFile, ACCEPTED_FILE_TYPES } from "@/lib/document-parsers";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -206,6 +208,9 @@ function AssistantThread() {
           text: parsed.text || undefined,
         });
         setAttachments((a) => [...a, att]);
+        if (att.empty && /\.pdf$/i.test(att.name)) {
+          toast.warning(`"${att.name}": PDF text extraction not supported (scanned image). Upload a text-based PDF or run OCR first.`);
+        }
       } catch (err) {
         toast.error((err as Error).message);
       }
@@ -265,35 +270,40 @@ function AssistantThread() {
       content = `Attached documents:\n\n${docsBlock}\n\nQuestion:\n${trimmed}`;
     }
 
-    // Build execution steps
+    // Build standardized execution steps (Mike-style)
     const steps: ChatStep[] = [];
+    const readableDocs = currentAttachments.filter((a) => a.text && a.text.trim().length > 0);
+    const emptyDocs = currentAttachments.filter((a) => a.empty);
+
     for (const a of currentAttachments) {
+      const isPdf = /\.pdf$/i.test(a.name);
       steps.push({
         kind: "read",
         label: `Read ${a.name}`,
         status: a.empty ? "warn" : "ok",
         detail: a.empty
-          ? "No extractable text found. The file may be a scanned image."
-          : `Extracted ~${a.text.length.toLocaleString()} characters.`,
+          ? isPdf
+            ? "PDF text extraction not supported — this file appears to be a scanned image with no selectable text layer. Upload a text-based PDF or run OCR first."
+            : "No extractable text found in this file."
+          : `Extracted ~${a.text.length.toLocaleString()} characters across ${Math.max(1, Math.ceil(a.text.length / 3000))} section(s).`,
       });
     }
-    if (currentAttachments.length > 0) {
-      steps.push({
-        kind: "thought",
-        label: "Thought process",
-        status: "ok",
-        detail: `Reviewing ${currentAttachments.length} document${currentAttachments.length === 1 ? "" : "s"} for the question:\n"${trimmed}"`,
-      });
 
-      // Keyword search hits
+    if (currentAttachments.length > 0) {
+      const analyzeDetail = [
+        `**Analyzing Document Structure**`,
+        `Reviewing ${currentAttachments.length} attached document${currentAttachments.length === 1 ? "" : "s"} (${readableDocs.length} readable, ${emptyDocs.length} without extractable text) to answer:`,
+        `"${trimmed}"`,
+      ].join("\n");
+      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: analyzeDetail });
+
       const keywords = trimmed
         .toLowerCase()
         .split(/[^a-z0-9]+/i)
         .filter((w) => w.length > 3)
         .slice(0, 3);
       for (const kw of keywords) {
-        for (const a of currentAttachments) {
-          if (!a.text) continue;
+        for (const a of readableDocs) {
           const re = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
           const matches = a.text.match(re)?.length ?? 0;
           steps.push({
@@ -303,7 +313,11 @@ function AssistantThread() {
           });
         }
       }
-      steps.push({ kind: "thought", label: "Thought process", status: "ok" });
+
+      const synthDetail = emptyDocs.length && !readableDocs.length
+        ? `**Confirming Lack of Text**\nAll attached files returned no extractable text. Preparing a message that OCR or a text-based PDF is required.`
+        : `**Synthesizing Answer**\nGrounding response strictly in the extracted document text and preparing structured output with citations.`;
+      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: synthDetail });
     }
 
     const { data: userMsg, error: userErr } = await supabase
@@ -658,11 +672,18 @@ function MessageBubble({
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
   }, [attachments]);
 
-  async function handleCopy() {
+  async function handleCopyCitations() {
+    if (uniqueAttachments.length === 0) {
+      toast.info("No citations to copy");
+      return;
+    }
+    const text = uniqueAttachments
+      .map((a, i) => `${i + 1}. ${a.name}${a.count > 1 ? ` (×${a.count})` : ""}`)
+      .join("\n");
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied");
+      toast.success("Citations copied");
       setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Copy failed");
@@ -699,12 +720,19 @@ function MessageBubble({
     <div className="max-w-[95%]">
       {steps && steps.length > 0 && <MessageSteps steps={steps} running={running} />}
       <div
-        className={
-          "whitespace-pre-wrap text-[0.95rem] leading-relaxed text-foreground " +
-          (streaming ? "assistant-streaming" : "")
-        }
+        className={cn(
+          "prose prose-sm max-w-none text-foreground",
+          "prose-headings:font-serif prose-headings:font-medium prose-headings:text-foreground",
+          "prose-h1:text-xl prose-h2:text-lg prose-h3:text-base",
+          "prose-p:my-2 prose-p:leading-relaxed",
+          "prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5",
+          "prose-strong:text-foreground prose-strong:font-semibold",
+          "prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.85em] prose-code:before:content-none prose-code:after:content-none",
+          "prose-table:text-xs prose-th:bg-muted",
+          streaming && "assistant-streaming",
+        )}
       >
-        {content}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         {streaming && (
           <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-primary align-middle" />
         )}
@@ -741,8 +769,10 @@ function MessageBubble({
         <div className="mt-2 flex items-center gap-1">
           <button
             type="button"
-            onClick={handleCopy}
-            aria-label="Copy response"
+            onClick={handleCopyCitations}
+            aria-label="Copy citations"
+            title="Copy citations"
+            
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
