@@ -124,18 +124,18 @@ function ExtractList() {
             <EmptyState onCreate={() => setCreateOpen(true)} />
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <thead className="text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Protocol</th>
-                  <th className="px-4 py-3 font-medium">Documents</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
+                  <th className="w-10 px-4 py-3 font-medium">
+                    <span className="inline-block h-3.5 w-3.5 rounded border border-border" aria-hidden />
+                  </th>
+                  <th className="px-2 py-3 font-medium">Document</th>
+                  <th className="px-4 py-3 font-medium">Class</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/70">
                 {filtered.map((e) => {
-                  const docs = Array.isArray(e.source_documents) ? e.source_documents.length : 0;
                   const proto = getProtocol(e.protocol);
                   return (
                     <tr
@@ -145,14 +145,19 @@ function ExtractList() {
                         navigate({ to: "/extract/$extractionId", params: { extractionId: e.id } })
                       }
                     >
-                      <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{proto.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{docs}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {new Date(e.created_at).toLocaleDateString()}
+                      <td className="px-4 py-3.5">
+                        <span
+                          className="inline-block h-3.5 w-3.5 rounded border border-border bg-background"
+                          aria-hidden
+                          onClick={(ev) => ev.stopPropagation()}
+                        />
                       </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={e.status} />
+                      <td className="px-2 py-3.5 font-medium text-foreground">{e.name}</td>
+                      <td className="px-4 py-3.5">
+                        <ClassPill protocolId={e.protocol} label={proto.name} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <StatusRow status={e.status} date={e.created_at} />
                       </td>
                     </tr>
                   );
@@ -178,40 +183,37 @@ function ExtractList() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const dot =
-    status === "ready" ? "bg-success" : status === "processing" ? "bg-warning" : "bg-destructive";
+const CLASS_TINTS: Record<string, string> = {
+  medication_list: "bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+  diagnosis_summary: "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+  lab_results: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
+  vital_signs: "bg-rose-100 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200",
+  followup_actions: "bg-violet-100 text-violet-900 dark:bg-violet-950/40 dark:text-violet-200",
+  discharge_summary: "bg-slate-200 text-slate-800 dark:bg-slate-800/60 dark:text-slate-200",
+  medication_reconciliation: "bg-cyan-100 text-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200",
+  condition_checklist: "bg-teal-100 text-teal-900 dark:bg-teal-950/40 dark:text-teal-200",
+  trial_eligibility: "bg-indigo-100 text-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200",
+  custom: "bg-muted text-foreground",
+};
+
+function ClassPill({ protocolId, label }: { protocolId: string; label: string }) {
+  const tint = CLASS_TINTS[protocolId] ?? "bg-muted text-foreground";
   return (
-    <Badge variant="outline" className="gap-1.5 font-mono text-[10px]">
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-      {status}
-    </Badge>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tint}`}>
+      {label}
+    </span>
   );
 }
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function StatusRow({ status, date }: { status: string; date: string }) {
+  const dot =
+    status === "ready" ? "bg-success" : status === "processing" ? "bg-warning" : "bg-destructive";
+  const label = status === "ready" ? "Ready" : status === "processing" ? "Processing" : "Failed";
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
-        <TableIcon className="h-5 w-5" />
-      </div>
-      <h3 className="mt-4 font-serif text-xl text-foreground">No extractions yet</h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        Turn a discharge summary or lab report into a clean structured table.
-      </p>
-      <div className="mt-5 flex gap-2">
-        <Button onClick={onCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Extraction
-        </Button>
-        <Button variant="outline" asChild>
-          <Link to="/cases">
-            <FolderOpen className="mr-2 h-4 w-4" />
-            Open a Case
-          </Link>
-        </Button>
-      </div>
-      <FileSearch className="mt-6 h-4 w-4 text-muted-foreground/40" />
-    </div>
+    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+      <span className={`h-2 w-2 rounded-full ${dot}`} />
+      <span className="text-foreground/80">{label}</span>
+      <span className="text-muted-foreground/70">· {new Date(date).toLocaleDateString()}</span>
+    </span>
   );
 }
