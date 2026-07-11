@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - Vite bundles the pdf.js worker from the package.
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import {
   Sheet,
@@ -178,7 +177,7 @@ function PdfInlinePreview({ url, name }: { url: string; name: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    let loadingTask: { destroy: () => Promise<void> } | null = null;
+    let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | null = null;
 
     setLoading(true);
     setError(null);
