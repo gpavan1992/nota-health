@@ -180,16 +180,6 @@ function ArticleList({ articles, emptyLabel }: { articles: Article[]; emptyLabel
             href={a.url}
             target="_blank"
             rel="noreferrer noopener external"
-            onClick={(e) => {
-              e.preventDefault();
-              const link = document.createElement("a");
-              link.href = a.url;
-              link.target = "_blank";
-              link.rel = "noopener noreferrer external";
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-            }}
             className="group inline-flex items-start gap-1.5 font-medium text-foreground hover:text-primary"
           >
             <span className="line-clamp-2 text-[0.95rem] leading-snug">{a.title}</span>
