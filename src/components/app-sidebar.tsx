@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useRouterState, useNavigate, useParams } from "@tanstack/react-router";
 import {
   MessageSquareText,
@@ -13,6 +14,9 @@ import {
   UserRound,
   Hash,
   ShieldCheck,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,12 +30,43 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { NotaLogo } from "@/components/nota-logo";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/hooks/use-profile";
-import { useChatThreads, useCreateThread } from "@/hooks/use-chat-threads";
+import {
+  useChatThreads,
+  useCreateThread,
+  useDeleteThread,
+  useRenameThread,
+} from "@/hooks/use-chat-threads";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
 
 const NAV = [
   { title: "Clinical Assistant", to: "/assistant", icon: MessageSquareText },
