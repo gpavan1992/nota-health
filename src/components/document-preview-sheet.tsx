@@ -217,7 +217,7 @@ function PdfInlinePreview({ url, name }: { url: string; name: string }) {
 
           pageShell.appendChild(canvas);
           host.appendChild(pageShell);
-          await page.render({ canvasContext: context, viewport }).promise;
+          await page.render({ canvas, canvasContext: context, viewport }).promise;
         }
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
