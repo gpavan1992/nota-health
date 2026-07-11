@@ -807,7 +807,8 @@ function RepoBullet({ children }: { children: React.ReactNode }) {
 
 /* ------------------------------- Footer ------------------------------- */
 
-export { SiteFooter } from "@/components/site-footer";
+import { SiteFooter } from "@/components/site-footer";
+
 
 
 /* ------------------------------- Helpers ------------------------------- */
