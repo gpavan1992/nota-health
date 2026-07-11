@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, Pill, Plus, Search, X, AlertTriangle, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -58,50 +58,38 @@ function DrugToolPage() {
 
 // --- text normalization helpers -------------------------------------------
 
-// FDA label sections come as one long blob with numbered headings baked in
-// ("1 INDICATIONS AND USAGE ...", "2.1 Recommended Dose ..."). Split into
-// scannable bullet points a clinician can read.
-function cleanLabelText(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  const text = raw
+function stripLabelNoise(raw: string): string {
+  return raw
     .replace(/\s+/g, " ")
-    .replace(/\(\s*(\d+(?:\.\d+)?)\s*\)/g, "") // strip ( 1 ), ( 2.1 ) refs
+    .replace(/\(\s*\d+(?:\.\d+)?\s*\)/g, "")
+    .replace(/^\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,}?\s+/, "")
     .trim();
+}
 
-  // Split on numbered section markers e.g. "2.1 Recommended Dose" or "2 DOSAGE ..."
-  const pieces = text
-    .split(/\s(?=\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,})/g)
-    .map((p) => p.trim())
-    .filter(Boolean);
+// One-line TL;DR: the first useful sentence, trimmed.
+function firstSentence(raw: string | null | undefined, max = 180): string | null {
+  if (!raw) return null;
+  const clean = stripLabelNoise(raw);
+  const m = clean.match(/^(.{20,}?[.!?])(\s|$)/);
+  const s = (m?.[1] ?? clean).trim();
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+}
 
-  const cleaned = pieces.map((p) =>
-    p
-      // drop leading numbering + ALLCAPS heading e.g. "2 DOSAGE AND ADMINISTRATION "
-      .replace(/^\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,}?\s+/, "")
-      .replace(/\s+/g, " ")
-      .trim(),
-  );
-
-  // Further break long paragraphs on sentence boundaries so each bullet stays short.
-  const bullets: string[] = [];
-  for (const c of cleaned) {
-    if (c.length <= 260) {
-      bullets.push(c);
-      continue;
-    }
-    const sentences = c.split(/(?<=[.!?])\s+(?=[A-Z(])/);
-    let buf = "";
-    for (const s of sentences) {
-      if ((buf + " " + s).trim().length > 260 && buf) {
-        bullets.push(buf.trim());
-        buf = s;
-      } else {
-        buf = (buf + " " + s).trim();
-      }
-    }
-    if (buf) bullets.push(buf.trim());
-  }
-  return bullets.filter((b) => b.length > 0);
+// Pull short, high-signal keywords out of a warnings/contraindications blob.
+const KEYWORDS = [
+  "pregnancy", "lactation", "renal impairment", "hepatic impairment",
+  "hypersensitivity", "lactic acidosis", "hypoglycemia", "hyperkalemia",
+  "bleeding", "qt prolongation", "pancreatitis", "heart failure",
+  "myocardial infarction", "stroke", "seizure", "angioedema",
+  "black box", "boxed warning", "children", "elderly", "geriatric",
+  "dialysis", "alcohol", "grapefruit",
+];
+function extractKeywords(raw: string | null | undefined, limit = 6): string[] {
+  if (!raw) return [];
+  const lower = raw.toLowerCase();
+  const hits = new Set<string>();
+  for (const k of KEYWORDS) if (lower.includes(k)) hits.add(k);
+  return Array.from(hits).slice(0, limit);
 }
 
 function DrugLookup() {
@@ -155,40 +143,7 @@ function DrugLookup() {
           </div>
         )}
 
-        {info && (
-          <div className="mt-5 space-y-5">
-            {/* header pill */}
-            <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
-              <div className="font-serif text-lg leading-tight text-foreground">
-                {info.brand_name ?? info.generic_name ?? "Unnamed"}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {info.generic_name && info.brand_name ? (
-                  <span>
-                    Generic <span className="text-foreground/80">{info.generic_name.toLowerCase()}</span>
-                  </span>
-                ) : null}
-                {info.route ? (
-                  <span>
-                    Route <span className="text-foreground/80">{info.route.toLowerCase()}</span>
-                  </span>
-                ) : null}
-                {info.manufacturer ? (
-                  <span>
-                    Mfr <span className="text-foreground/80">{info.manufacturer}</span>
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            <ClinicalSection label="Indications" text={info.indications} />
-            <ClinicalSection label="Dosage & administration" text={info.dosage} />
-            <ClinicalSection label="Warnings" text={info.warnings} tone="warn" />
-            <ClinicalSection label="Contraindications" text={info.contraindications} tone="warn" />
-            <ClinicalSection label="Common side effects" text={info.adverse_reactions} />
-            <ClinicalSection label="Drug interactions" text={info.drug_interactions} tone="warn" />
-          </div>
-        )}
+        {info && <DrugGlance info={info} />}
 
         {searched && !info && !error && (
           <p className="mt-4 text-sm text-muted-foreground">No drug label found for that name.</p>
@@ -198,63 +153,149 @@ function DrugLookup() {
   );
 }
 
-function ClinicalSection({
+function DrugGlance({ info }: { info: DrugInfo }) {
+  const [showFull, setShowFull] = useState(false);
+
+  const indication = firstSentence(info.indications, 160);
+  const dose = firstSentence(info.dosage, 140);
+  const contraKeys = extractKeywords(info.contraindications);
+  const warnKeys = extractKeywords(info.warnings);
+  const aeKeys = extractKeywords(info.adverse_reactions);
+  const rxKeys = extractKeywords(info.drug_interactions);
+
+  return (
+    <div className="mt-5 space-y-4">
+      {/* header */}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/60 pb-3">
+        <h3 className="font-serif text-xl leading-tight text-foreground">
+          {info.brand_name ?? info.generic_name ?? "Unnamed"}
+        </h3>
+        {info.generic_name && info.brand_name && (
+          <span className="text-sm text-muted-foreground">{info.generic_name.toLowerCase()}</span>
+        )}
+        <div className="ml-auto flex flex-wrap gap-1.5">
+          {info.route && <MetaPill>{info.route.toLowerCase()}</MetaPill>}
+          {info.manufacturer && <MetaPill tone="muted">{info.manufacturer}</MetaPill>}
+        </div>
+      </div>
+
+      {/* glance grid */}
+      <dl className="grid gap-3 sm:grid-cols-2">
+        <GlanceRow label="Indication">{indication ?? "—"}</GlanceRow>
+        <GlanceRow label="Adult dose">{dose ?? "—"}</GlanceRow>
+        <GlanceRow label="Contraindications" tone="warn">
+          <KeywordChips items={contraKeys} fallback={info.contraindications} />
+        </GlanceRow>
+        <GlanceRow label="Key warnings" tone="warn">
+          <KeywordChips items={warnKeys} fallback={info.warnings} />
+        </GlanceRow>
+        <GlanceRow label="Common AEs">
+          <KeywordChips items={aeKeys} fallback={info.adverse_reactions} />
+        </GlanceRow>
+        <GlanceRow label="Interactions" tone="warn">
+          <KeywordChips items={rxKeys} fallback={info.drug_interactions} />
+        </GlanceRow>
+      </dl>
+
+      {/* full label */}
+      <button
+        type="button"
+        onClick={() => setShowFull((v) => !v)}
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+      >
+        {showFull ? "Hide full FDA label" : "Show full FDA label"}
+        <ChevronDown className={cn("h-3 w-3 transition-transform", showFull && "rotate-180")} />
+      </button>
+      {showFull && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-[0.8rem] leading-relaxed text-muted-foreground">
+          <FullSection label="Indications" text={info.indications} />
+          <FullSection label="Dosage" text={info.dosage} />
+          <FullSection label="Warnings" text={info.warnings} />
+          <FullSection label="Contraindications" text={info.contraindications} />
+          <FullSection label="Adverse reactions" text={info.adverse_reactions} />
+          <FullSection label="Drug interactions" text={info.drug_interactions} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GlanceRow({
   label,
-  text,
+  children,
   tone,
 }: {
   label: string;
-  text: string | null;
+  children: React.ReactNode;
   tone?: "warn";
 }) {
-  const bullets = useMemo(() => cleanLabelText(text), [text]);
-  const [expanded, setExpanded] = useState(false);
-  if (bullets.length === 0) return null;
-
-  const visible = expanded ? bullets : bullets.slice(0, 3);
-  const canExpand = bullets.length > 3;
-
   return (
-    <section>
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            tone === "warn" ? "bg-destructive" : "bg-primary",
-          )}
-        />
-        <h4
-          className={cn(
-            "text-[0.68rem] font-semibold uppercase tracking-[0.14em]",
-            tone === "warn" ? "text-destructive" : "text-muted-foreground",
-          )}
-        >
-          {label}
-        </h4>
-      </div>
-      <ul className="space-y-1.5 pl-3.5">
-        {visible.map((b, i) => (
-          <li
-            key={i}
-            className="relative text-[0.9rem] leading-relaxed text-foreground/90 before:absolute before:-left-3.5 before:top-[0.6em] before:h-1 before:w-1 before:rounded-full before:bg-muted-foreground/50"
-          >
-            {b}
-          </li>
-        ))}
-      </ul>
-      {canExpand && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          {expanded ? "Show less" : `Show ${bullets.length - 3} more`}
-          <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
-        </button>
-      )}
-    </section>
+    <div className="rounded-lg border border-border/60 bg-card/40 px-3 py-2.5">
+      <dt
+        className={cn(
+          "text-[0.62rem] font-semibold uppercase tracking-[0.14em]",
+          tone === "warn" ? "text-destructive/80" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </dt>
+      <dd className="mt-1 text-[0.85rem] leading-snug text-foreground/90">{children}</dd>
+    </div>
   );
 }
+
+function KeywordChips({ items, fallback }: { items: string[]; fallback: string | null }) {
+  if (items.length === 0) {
+    if (!fallback) return <span className="text-muted-foreground">None documented</span>;
+    return <span className="text-muted-foreground">See full label</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((k) => (
+        <span
+          key={k}
+          className="rounded-md bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium capitalize text-foreground/80"
+        >
+          {k}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function MetaPill({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "muted";
+}) {
+  return (
+    <span
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[0.68rem] font-medium",
+        tone === "muted"
+          ? "border-border/60 bg-muted/40 text-muted-foreground"
+          : "border-primary/30 bg-primary/10 text-primary",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function FullSection({ label, text }: { label: string; text: string | null }) {
+  if (!text) return null;
+  return (
+    <div>
+      <div className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
+        {label}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap">{stripLabelNoise(text)}</p>
+    </div>
+  );
+}
+
 
 function InteractionChecker() {
   const [drug, setDrug] = useState("");
