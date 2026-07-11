@@ -217,3 +217,30 @@ function StatusRow({ status, date }: { status: string; date: string }) {
     </span>
   );
 }
+
+function EmptyState({ onCreate }: { onCreate: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
+        <TableIcon className="h-5 w-5" />
+      </div>
+      <h3 className="mt-4 font-serif text-xl text-foreground">No extractions yet</h3>
+      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+        Turn a discharge summary or lab report into a clean structured table.
+      </p>
+      <div className="mt-5 flex gap-2">
+        <Button onClick={onCreate}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Extraction
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/cases">
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Open a Case
+          </Link>
+        </Button>
+      </div>
+      <FileSearch className="mt-6 h-4 w-4 text-muted-foreground/40" />
+    </div>
+  );
+}
