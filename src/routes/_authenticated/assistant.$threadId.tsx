@@ -206,6 +206,9 @@ function AssistantThread() {
           text: parsed.text || undefined,
         });
         setAttachments((a) => [...a, att]);
+        if (att.empty && /\.pdf$/i.test(att.name)) {
+          toast.warning(`"${att.name}": PDF text extraction not supported (scanned image). Upload a text-based PDF or run OCR first.`);
+        }
       } catch (err) {
         toast.error((err as Error).message);
       }
