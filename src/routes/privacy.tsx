@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+
 import { NotaLogo } from "@/components/nota-logo";
 
 export const Route = createFileRoute("/privacy")({
@@ -234,6 +236,8 @@ function PrivacyPage() {
           </div>
         </div>
       </main>
+      <SiteFooter />
+
     </div>
   );
 }

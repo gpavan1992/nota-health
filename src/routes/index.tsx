@@ -807,52 +807,9 @@ function RepoBullet({ children }: { children: React.ReactNode }) {
 
 /* ------------------------------- Footer ------------------------------- */
 
-function SiteFooter() {
-  return (
-    <footer className="bg-background">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <NotaLogo size="sm" />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <FooterItem>Nota Health</FooterItem>
-          <FooterDot />
-          <FooterItem>
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer noopener">
-              Open Source
-            </a>
-          </FooterItem>
-          <FooterDot />
-          <FooterItem>AGPL-3.0</FooterItem>
-          <FooterDot />
-          <FooterItem>
-            Nota Health is not a medical device. All AI outputs require review by a qualified healthcare professional.
-          </FooterItem>
-          <FooterDot />
-          <FooterItem>
-            <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-          </FooterItem>
-          <FooterDot />
-          <FooterItem>
-            <Link to="/terms" className="hover:text-foreground">Terms</Link>
-          </FooterItem>
-          <FooterDot />
-          <FooterItem>
-            <Link to="/compliance" className="hover:text-foreground">Compliance</Link>
-          </FooterItem>
-        </div>
+import { SiteFooter } from "@/components/site-footer";
 
-      </div>
-    </footer>
-  );
-}
 
-function FooterItem({ children }: { children: React.ReactNode }) {
-  return <span className="text-muted-foreground">{children}</span>;
-}
-function FooterDot() {
-  return <span className="text-muted-foreground/40">·</span>;
-}
 
 /* ------------------------------- Helpers ------------------------------- */
 
