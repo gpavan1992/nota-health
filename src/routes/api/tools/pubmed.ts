@@ -187,8 +187,14 @@ type Article = {
   year: number | null;
   authors: string[];
   abstract: string;
+  volume: string;
+  issue: string;
+  doi: string;
+  meshTerms: string[];
+  keywords: string[];
   url: string;
 };
+
 
 export const Route = createFileRoute("/api/tools/pubmed")({
   server: {
