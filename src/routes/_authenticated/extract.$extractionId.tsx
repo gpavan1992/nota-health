@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Copy, Download, FolderPlus, Trash2, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -194,7 +195,7 @@ function ExtractionDetail() {
           </div>
         </div>
 
-        <Card className="mt-6 bg-card/95 backdrop-blur">
+        <Card className="mt-6 overflow-hidden rounded-2xl border-border/60 bg-card/95 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] backdrop-blur">
           <CardContent className="p-0">
             {extraction.status === "processing" ? (
               <div className="flex items-center justify-center gap-3 p-16 text-sm text-muted-foreground">
@@ -210,56 +211,169 @@ function ExtractionDetail() {
                 No rows were extracted from the provided documents.
               </div>
             ) : isFieldValue ? (
-              <table className="w-full text-sm">
-                <thead className="text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
-                  <tr>
-                    <th className="w-1/3 px-6 py-3 font-medium">Field</th>
-                    <th className="px-6 py-3 font-medium">Value</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/70">
-                  {rows.map((r, i) => (
-                    <tr key={i} className="hover:bg-muted/20">
-                      <td className="px-6 py-3 align-top font-mono text-[13px] text-muted-foreground">
-                        {r.field || <span className="text-muted-foreground/60">—</span>}
-                      </td>
-                      <td className="px-6 py-3 align-top font-mono text-[13px] text-foreground">
-                        {r.value || <span className="text-muted-foreground">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <ClinicalFieldValueTable rows={rows} />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
-                    <tr>
-                      {columns.map((c) => (
-                        <th key={c.key} className="px-4 py-3 font-medium">
-                          {c.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/70">
-                    {rows.map((r, i) => (
-                      <tr key={i} className="hover:bg-muted/20">
-                        {columns.map((c) => (
-                          <td key={c.key} className="px-4 py-3 align-top font-mono text-[13px] text-foreground">
-                            {r[c.key] || <span className="text-muted-foreground">—</span>}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ClinicalTable columns={columns} rows={rows} />
             )}
           </CardContent>
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+/* ------------------------------ Table pieces ------------------------------ */
+
+// Soft tinted pill palette (semantic, cycles by hash so identical enum values share a color)
+const PILL_TINTS = [
+  "bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--accent)_18%,transparent)] text-[color-mix(in_oklab,var(--accent-foreground)_90%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--success)_14%,transparent)] text-[color-mix(in_oklab,var(--success)_80%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--warning)_16%,transparent)] text-[color-mix(in_oklab,var(--warning)_85%,var(--foreground))]",
+  "bg-[color-mix(in_oklab,var(--destructive)_12%,transparent)] text-[color-mix(in_oklab,var(--destructive)_85%,var(--foreground))]",
+];
+
+function tintFor(v: string) {
+  let h = 0;
+  for (let i = 0; i < v.length; i++) h = (h * 31 + v.charCodeAt(i)) >>> 0;
+  return PILL_TINTS[h % PILL_TINTS.length];
+}
+
+function EnumPill({ value }: { value: string }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-medium ${tintFor(value.toLowerCase())}`}
+    >
+      {value}
+    </span>
+  );
+}
+
+/** A column is "enum-like" when values are short, repeat often, and have low cardinality. */
+function detectEnumColumns(columns: ProtocolColumn[], rows: Record<string, string>[]) {
+  const flags: Record<string, boolean> = {};
+  for (const c of columns) {
+    const vals = rows.map((r) => (r[c.key] ?? "").trim()).filter(Boolean);
+    if (vals.length < 2) { flags[c.key] = false; continue; }
+    const uniq = new Set(vals);
+    const maxLen = Math.max(...vals.map((v) => v.length));
+    flags[c.key] =
+      maxLen <= 24 && uniq.size <= Math.max(2, Math.ceil(vals.length / 2)) && uniq.size <= 6;
+  }
+  return flags;
+}
+
+function ClinicalTable({
+  columns,
+  rows,
+}: {
+  columns: ProtocolColumn[];
+  rows: Record<string, string>[];
+}) {
+  const enumCols = useMemo(() => detectEnumColumns(columns, rows), [columns, rows]);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-separate border-spacing-0 text-sm">
+        <thead>
+          <tr className="text-left text-[12px] font-medium text-muted-foreground">
+            <th className="w-10 px-4 py-3.5" aria-label="Select" />
+            {columns.map((c) => (
+              <th
+                key={c.key}
+                className="border-b border-border/60 px-4 py-3.5 font-medium"
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const complete = columns.every((c) => (r[c.key] ?? "").trim().length > 0);
+            return (
+              <tr
+                key={i}
+                className="group transition-colors hover:bg-muted/40"
+              >
+                <td className="w-10 border-b border-border/40 px-4 py-3.5 align-middle">
+                  <Checkbox className="h-4 w-4 rounded-full border-border/70" />
+                </td>
+                {columns.map((c, ci) => {
+                  const raw = (r[c.key] ?? "").trim();
+                  const isLast = ci === columns.length - 1;
+                  return (
+                    <td
+                      key={c.key}
+                      className="relative border-b border-border/40 px-4 py-3.5 align-middle text-[13px] text-foreground"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1 truncate" title={raw}>
+                          {raw ? (
+                            enumCols[c.key] ? (
+                              <EnumPill value={raw} />
+                            ) : (
+                              <span className="text-foreground/90">{raw}</span>
+                            )
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </div>
+                        {isLast && (
+                          <span
+                            aria-hidden
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                              complete ? "bg-success" : "bg-warning"
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClinicalFieldValueTable({ rows }: { rows: Record<string, string>[] }) {
+  return (
+    <table className="w-full border-separate border-spacing-0 text-sm">
+      <thead>
+        <tr className="text-left text-[12px] font-medium text-muted-foreground">
+          <th className="w-1/3 border-b border-border/60 px-6 py-3.5 font-medium">Field</th>
+          <th className="border-b border-border/60 px-6 py-3.5 font-medium">Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => {
+          const has = (r.value ?? "").trim().length > 0;
+          return (
+            <tr key={i} className="hover:bg-muted/40">
+              <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-muted-foreground">
+                {r.field || <span className="text-muted-foreground/60">—</span>}
+              </td>
+              <td className="relative border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-foreground">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    {has ? r.value : <span className="text-muted-foreground/60">—</span>}
+                  </div>
+                  <span
+                    aria-hidden
+                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                      has ? "bg-success" : "bg-warning"
+                    }`}
+                  />
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
