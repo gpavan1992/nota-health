@@ -1,78 +1,52 @@
-# Nota Health — Critical Fix Plan
+# Plan: MikeOSS-style Assistant Enhancements
 
-Scope is large. I'll work in 5 batches, each independently shippable. Critical items first, Medium second, Low deferred.
+Bring the Clinical Assistant closer to the Mike OSS reference across six areas.
 
-## Batch 1 — Foundations (unblocks everything else)
+## 1. Execution steps timeline (per assistant message)
+- Add a collapsible "Completed in N steps" panel that appears above each assistant response.
+- Steps captured during a run:
+  - `Read <doc>` for each attached document (green dot when parsed OK, red when unreadable).
+  - `Thought process` entries at start and just before final answer (expandable to show the model's brief reasoning/preamble text).
+  - `Found "<query>" (N matches) in <doc>` — simple client-side keyword hit-count against the parsed doc text using the user's question keywords.
+- Persist steps on the assistant message. Add a `steps jsonb` column to `chat_messages` (nullable, default `[]`).
+- Render collapsed by default with a chevron; expand to see all steps.
 
-**Gemini streaming adapter** (Sections 2, 3, 6, 7, 8, 9)
-- Add `streamGemini()` to `src/lib/chat-stream.ts` using `generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse`
-- Route `provider === "google"` to it (removes the "not wired" throw)
-- Model label passed through to the assistant message metadata
-- Invalid-key → surface API error text via existing toast path (already handled by throw → catch)
+## 2. Clear validation / empty-content message
+- When a PDF/image yields no extractable text (already the case for scanned PDFs), surface a clear one-liner in the answer body:
+  > "The document '<name>' appears to be a scanned image with no extractable text. I can't summarize it. Try uploading a text-based PDF, or enable OCR."
+- Also mark the corresponding Read step with a warning icon + tooltip "No extractable text".
 
-**Profile: per-provider keys** (Section 2)
-- Extend `profiles` with `google_api_key`, `openai_api_key` (migration + GRANT); keep existing `anthropic_api_key`
-- `assistant.$threadId.tsx` selects the key by provider of current model; banner + disabled input driven by "no key for current provider"
-- Model selector warning when switching to a provider without a key
-- Settings page: mask saved keys (`sk-•••••••abcd`), never render raw value after save
-- Never store keys in localStorage/sessionStorage — DB-only (already the case; audit and confirm)
+## 3. Citations panel with right-side document preview
+- Under each assistant message add a "Citations" card listing each source document with a small badge (count).
+- Clicking a citation opens a right-hand slide-over panel (Sheet) that previews the document:
+  - PDFs → embedded `<iframe>` using an object URL of the stored file.
+  - Images → `<img>`.
+  - Text/DOCX → rendered extracted text.
+- Store the original file blob for the session in-memory (Map keyed by attachment id) so preview works without a re-upload. Case-linked docs use their existing storage URL.
+- Include a Download button in the preview header.
 
-**Landing + auth redirects** (Sections 1, 11)
-- Root `/` already public — verify no auth redirect
-- `_authenticated` layout already redirects to `/auth`; verify `/cases` and `/assistant` covered
-- Sign-up: enforce 8+ chars, required fields, map Supabase "User already registered" to clear message
-- Sign-in: map "Invalid login credentials" → "Wrong email or password"
-- Session persistence already via Supabase; verify `persistSession: true`
+## 4. Copy message button
+- Add a copy icon under every assistant message (already have one stub in screenshot). Copies the plain-text answer to clipboard with a toast.
 
-## Batch 2 — Disclaimer + Naming + Logo (Sections 12, 13, 14)
+## 5. Rename / delete for chat history
+- The sidebar thread list gets a `…` menu (DropdownMenu) per thread with:
+  - Rename → inline input, updates `chat_threads.title`.
+  - Delete → confirm dialog, removes thread + messages (cascade already in place).
+- Wire to existing `useDeleteThread` and add `useRenameThread`.
 
-- Replace landing footer `<FooterItem>"Not a medical device"</FooterItem>` with the full required sentence
-- Compliance page bottom: use the exact sentence
-- Auth page: add persistent footer disclaimer
-- AppShell footer already correct — verify
-- Grep for bare "Nota" as product name, replace with "Nota Health"
-- Grep user-visible "Lovable" strings in `client.ts` / `auth-middleware.ts` error toasts → replace with "Nota Health"
-- `NotaMark` in sidebar: bump to 28px, straighten QRS polyline so the spike reads at small sizes
-- Landing hero: add large `NotaMark`
-- Favicon already teal ECG-N — verify
+## 6. Auto-scroll-to-bottom affordance
+- Track whether the transcript is scrolled away from the bottom.
+- When not at bottom during streaming, show a floating circular ↓ button above the composer.
+- Clicking scrolls smoothly to the newest message. Auto-hides when at bottom.
 
-## Batch 3 — Cases + Documents (Sections 4, 5)
+## Technical notes
+- Files touched:
+  - `supabase/migrations/*` — add `steps jsonb` column to `chat_messages`.
+  - `src/routes/_authenticated/assistant.$threadId.tsx` — steps tracking, citations, copy, auto-scroll.
+  - `src/components/message-steps.tsx` — new step timeline component.
+  - `src/components/document-preview-sheet.tsx` — new right-side preview.
+  - `src/components/app-sidebar.tsx` (or wherever thread list renders) — rename/delete menu.
+  - `src/hooks/use-chat-threads.ts` — add `useRenameThread`.
+- No provider/model changes. All UI + one DB column.
 
-- Cases: confirm React Query invalidation on create/rename/delete (no refresh)
-- Add confirmation dialog on delete
-- `cases.$caseId.tsx`: 404 boundary via `notFoundComponent` when case missing
-- Search: real-time client filter
-- Uploads: accept PDF/DOCX/TXT; reject PNG and >50MB with toast
-- Processing status: realtime channel or polling every 5s until terminal
-- Stuck-processing watchdog: server fn cron-style check (or client-side on load) marking >2min as `failed`
-- Delete during processing: cancel + row removal in one transaction
-
-## Batch 4 — Extract + Protocols + Tools (Sections 6, 8, 9, 10)
-
-- `run-extraction.ts`: route through Gemini when key/provider is Google, use structured JSON output
-- Validate document + key before submit → clear inline errors
-- All 6 built-in protocols wired with real prompts producing structured tables
-- Protocols page → clicking opens Assistant with seeded prompt (already present, verify per-protocol focus)
-- Tools (Drug/PubMed/NPI/ICD): already server routes under `/api/tools/*` — verify no auth-key dependency, add empty-state on zero results, error boundary on 4xx/5xx
-
-## Batch 5 — Security cross-check (Section 15)
-
-- Verify RLS on `cases`, `case_documents`, `chat_threads`, `chat_messages`, `extractions` (already `owner_id = auth.uid()`)
-- Sign-out: `queryClient.clear()` + `cancelQueries()` before `supabase.auth.signOut()`
-- Case detail route: `notFound()` on empty result (already-not-yours cases look identical to deleted)
-- Audit log: currently claimed on compliance page but no table exists. Either (a) create `audit_log` table + RLS + log auth/case events, or (b) remove the claim from compliance copy. **Recommend (b)** — smaller, honest, ships today. Ask if you want (a) instead.
-
-## Explicitly deferred (Low)
-
-- Pattern-name taxonomy in styles.css
-- Monospaced treatment for drug/dose fields
-- Tablet 768px layout QA
-- OG image generation
-
-## Open questions before I start
-
-1. **Audit log** — build the real table or remove the claim from Compliance? (Recommend remove.)
-2. **Gemini model list** — the current catalog has `google/gemini-*` gateway ids, but BYOK Gemini needs raw Google model names (e.g. `gemini-2.5-flash`). OK to add a mapping in `model-catalog.ts`?
-3. **Stuck-processing watchdog** — client-side sweep on load is simple and free; a cron server fn is more reliable. Pick one?
-
-Approve and I'll start with Batch 1.
+Proceed?
