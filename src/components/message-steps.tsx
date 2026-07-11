@@ -28,7 +28,7 @@ export function MessageSteps({
   steps: ChatStep[];
   running?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   if (!steps || steps.length === 0) return null;
 
