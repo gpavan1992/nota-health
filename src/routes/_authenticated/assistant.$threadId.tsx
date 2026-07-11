@@ -36,6 +36,8 @@ import {
 } from "@/components/document-preview-sheet";
 import { parseFile, ACCEPTED_FILE_TYPES } from "@/lib/document-parsers";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export const Route = createFileRoute("/_authenticated/assistant/$threadId")({
   validateSearch: (search: Record<string, unknown>) => ({
