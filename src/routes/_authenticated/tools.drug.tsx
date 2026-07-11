@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, Pill, Plus, Search, X, AlertTriangle, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
