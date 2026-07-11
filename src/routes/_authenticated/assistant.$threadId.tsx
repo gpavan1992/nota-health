@@ -763,7 +763,7 @@ function MessageBubble({
             onClick={handleCopyCitations}
             aria-label="Copy citations"
             title="Copy citations"
-            aria-label="Copy response"
+            
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
