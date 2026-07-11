@@ -38,7 +38,7 @@ async function searchPubmed(query: string, limit: number) {
       year: parseYear(rec.pubdate as string | undefined),
       authors,
       abstract: abstracts.get(id) ?? "",
-      url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+      url: `/api/tools/pubmed?source=${encodeURIComponent(id)}`,
     };
   });
 
@@ -86,6 +86,49 @@ function parseYear(v: string | undefined): number | null {
   return m ? parseInt(m[0], 10) : null;
 }
 
+async function sourceView(pmid: string) {
+  if (!/^\d+$/.test(pmid)) return new Response("Invalid PMID", { status: 400 });
+  const abstractUrl = `${EUTILS}/efetch.fcgi?db=pubmed&rettype=abstract&retmode=text&id=${pmid}`;
+  const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+  const res = await fetch(abstractUrl, { headers: { accept: "text/plain" } });
+  if (!res.ok) return new Response("Unable to load PubMed source", { status: 502 });
+  const text = (await res.text()).trim() || `No abstract text returned for PMID ${pmid}.`;
+  return new Response(
+    `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PMID ${pmid} — PubMed Source</title>
+  <style>
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #111827; }
+    main { max-width: 880px; margin: 0 auto; padding: 32px 20px 56px; }
+    a { color: #0f766e; font-weight: 650; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid #d1d5db; background: #ffffff; padding: 20px; line-height: 1.55; font-size: 15px; }
+    .meta { margin-bottom: 16px; color: #4b5563; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>PMID ${pmid}</h1>
+    <p class="meta">Official NCBI/PubMed abstract source. Direct PubMed page: <a href="${pubmedUrl}" target="_blank" rel="noopener noreferrer">${pubmedUrl}</a></p>
+    <pre>${escapeHtml(text)}</pre>
+  </main>
+</body>
+</html>`,
+    { headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 type Article = {
   pmid: string;
   title: string;
@@ -101,6 +144,8 @@ export const Route = createFileRoute("/api/tools/pubmed")({
     handlers: {
       GET: async ({ request }) => {
         const url = new URL(request.url);
+        const source = (url.searchParams.get("source") ?? "").trim();
+        if (source) return sourceView(source);
         const q = (url.searchParams.get("q") ?? "").trim();
         const limit = Math.min(20, Math.max(1, Number(url.searchParams.get("limit") ?? 10)));
         if (!q) return Response.json({ error: "Missing query" }, { status: 400 });
