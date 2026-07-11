@@ -820,7 +820,33 @@ function MessageBubble({
           streaming && "assistant-streaming",
         )}
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ children }) => (
+              <div className="my-3 overflow-x-auto rounded-xl border border-border bg-card">
+                <table className="w-full border-collapse text-sm">{children}</table>
+              </div>
+            ),
+            thead: ({ children }) => (
+              <thead className="border-b border-border bg-muted/40 text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
+                {children}
+              </thead>
+            ),
+            th: ({ children }) => (
+              <th className="px-3 py-2 font-medium">{children}</th>
+            ),
+            tbody: ({ children }) => (
+              <tbody className="divide-y divide-border/70">{children}</tbody>
+            ),
+            tr: ({ children }) => <tr className="hover:bg-muted/20">{children}</tr>,
+            td: ({ children }) => (
+              <td className="px-3 py-2 align-top font-mono text-[13px] text-foreground">{children}</td>
+            ),
+          }}
+        >
+          {content}
+        </ReactMarkdown>
         {streaming && (
           <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-primary align-middle" />
         )}
