@@ -79,7 +79,7 @@ const TOOLS = [
   { title: "Drug Database", to: "/tools/drug", icon: Pill },
   { title: "Medical Literature", to: "/tools/pubmed", icon: BookOpen },
   { title: "Provider Verification", to: "/tools/provider", icon: UserRound },
-  { title: "ICD Code Lookup", to: "/tools/icd", icon: Hash },
+  { title: "ICD-10 Code Lookup", to: "/tools/icd", icon: Hash },
 ] as const;
 
 
