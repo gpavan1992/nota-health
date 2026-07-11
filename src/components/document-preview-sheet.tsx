@@ -36,16 +36,55 @@ export function DocumentPreviewSheet({
   const [docxHtml, setDocxHtml] = useState<string | null>(null);
   const [loadingDocx, setLoadingDocx] = useState(false);
   const [docxError, setDocxError] = useState<string | null>(null);
+  const [renderUrl, setRenderUrl] = useState<string | null>(null);
+  const [loadingFile, setLoadingFile] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRenderUrl(null);
+    setFileError(null);
+    if (!open || !source?.url) return;
+
+    if (source.url.startsWith("blob:") || source.url.startsWith("data:")) {
+      setRenderUrl(source.url);
+      return;
+    }
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setLoadingFile(true);
+    (async () => {
+      try {
+        const res = await fetch(source.url!);
+        if (!res.ok) throw new Error(`Failed to load document (${res.status})`);
+        const rawBlob = await res.blob();
+        const blob = source.mime && rawBlob.type !== source.mime
+          ? new Blob([rawBlob], { type: source.mime })
+          : rawBlob;
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setRenderUrl(objectUrl);
+      } catch (err) {
+        if (!cancelled) setFileError((err as Error).message);
+      } finally {
+        if (!cancelled) setLoadingFile(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [open, source?.url, source?.mime]);
 
   useEffect(() => {
     setDocxHtml(null);
     setDocxError(null);
-    if (!open || !source?.url || !isDocx) return;
+    if (!open || !renderUrl || !isDocx) return;
     let cancelled = false;
     setLoadingDocx(true);
     (async () => {
       try {
-        const res = await fetch(source.url!);
+        const res = await fetch(renderUrl);
         if (!res.ok) throw new Error(`Failed to fetch document (${res.status})`);
         const buf = await res.arrayBuffer();
         // @ts-expect-error - no types for browser entry
@@ -61,7 +100,7 @@ export function DocumentPreviewSheet({
     return () => {
       cancelled = true;
     };
-  }, [open, source?.url, isDocx]);
+  }, [open, renderUrl, isDocx]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -83,15 +122,21 @@ export function DocumentPreviewSheet({
         <div className="flex-1 overflow-auto bg-muted/30">
           {!source ? (
             <div className="p-6 text-sm text-muted-foreground">No document selected.</div>
-          ) : isImage && source.url ? (
-            <img src={source.url} alt={source.name} className="mx-auto max-w-full" />
-          ) : isPdf && source.url ? (
+          ) : fileError ? (
+            <div className="p-6 text-sm text-destructive">Failed to load preview: {fileError}</div>
+          ) : loadingFile && source.url && !renderUrl ? (
+            <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading document…
+            </div>
+          ) : isImage && renderUrl ? (
+            <img src={renderUrl} alt={source.name} className="mx-auto max-w-full" />
+          ) : isPdf && renderUrl ? (
             <iframe
-              src={`${source.url}#toolbar=1&view=FitH`}
+              src={`${renderUrl}#toolbar=1&view=FitH`}
               title={source.name}
               className="h-full min-h-[80vh] w-full border-0"
             />
-          ) : isDocx && source.url ? (
+          ) : isDocx && renderUrl ? (
             loadingDocx ? (
               <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Rendering document…
@@ -106,9 +151,9 @@ export function DocumentPreviewSheet({
             ) : null
           ) : isPlainText && source.text ? (
             <pre className="whitespace-pre-wrap p-4 text-xs leading-relaxed text-foreground">{source.text}</pre>
-          ) : source.url ? (
+          ) : renderUrl ? (
             <iframe
-              src={source.url}
+              src={renderUrl}
               title={source.name}
               className="h-full min-h-[80vh] w-full border-0 bg-white"
             />
