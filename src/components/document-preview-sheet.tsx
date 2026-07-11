@@ -1,4 +1,5 @@
-import { Download, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, FileText, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -26,8 +27,41 @@ export function DocumentPreviewSheet({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const isImage = source?.mime?.startsWith("image/");
-  const isPdf = source?.mime === "application/pdf" || source?.name.toLowerCase().endsWith(".pdf");
+  const lower = source?.name.toLowerCase() ?? "";
+  const isImage = source?.mime?.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(lower);
+  const isPdf = source?.mime === "application/pdf" || lower.endsWith(".pdf");
+  const isDocx = lower.endsWith(".docx") || source?.mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const isPlainText = /\.(txt|md|csv|json|log|tsv|xml|html?|rtf)$/i.test(lower) || source?.mime?.startsWith("text/");
+
+  const [docxHtml, setDocxHtml] = useState<string | null>(null);
+  const [loadingDocx, setLoadingDocx] = useState(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDocxHtml(null);
+    setDocxError(null);
+    if (!open || !source?.url || !isDocx) return;
+    let cancelled = false;
+    setLoadingDocx(true);
+    (async () => {
+      try {
+        const res = await fetch(source.url!);
+        if (!res.ok) throw new Error(`Failed to fetch document (${res.status})`);
+        const buf = await res.arrayBuffer();
+        // @ts-expect-error - no types for browser entry
+        const mammoth = await import("mammoth/mammoth.browser");
+        const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+        if (!cancelled) setDocxHtml(result.value || "<p><em>(empty document)</em></p>");
+      } catch (err) {
+        if (!cancelled) setDocxError((err as Error).message);
+      } finally {
+        if (!cancelled) setLoadingDocx(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, source?.url, isDocx]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -57,6 +91,21 @@ export function DocumentPreviewSheet({
               title={source.name}
               className="h-full min-h-[80vh] w-full border-0"
             />
+          ) : isDocx && source.url ? (
+            loadingDocx ? (
+              <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Rendering document…
+              </div>
+            ) : docxError ? (
+              <div className="p-6 text-sm text-destructive">Failed to render: {docxError}</div>
+            ) : docxHtml ? (
+              <div
+                className="prose prose-sm mx-auto max-w-none bg-white p-8 text-foreground shadow-sm dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: docxHtml }}
+              />
+            ) : null
+          ) : isPlainText && source.text ? (
+            <pre className="whitespace-pre-wrap p-4 text-xs leading-relaxed text-foreground">{source.text}</pre>
           ) : source.url ? (
             <iframe
               src={source.url}
