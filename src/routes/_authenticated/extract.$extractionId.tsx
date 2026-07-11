@@ -115,112 +115,150 @@ function ExtractionDetail() {
     URL.revokeObjectURL(url);
   }
 
+  const isFieldValue =
+    columns.length === 2 && columns[0]?.key === "field" && columns[1]?.key === "value";
+
   return (
     <AppShell user={user}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 h-7 text-muted-foreground">
-            <Link to="/extract">
-              <ArrowLeft className="mr-1 h-3.5 w-3.5" />
-              All extractions
-            </Link>
-          </Button>
-          <h1 className="font-serif text-3xl font-medium tracking-tight text-foreground">
-            {extraction.name}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline" className="font-mono text-[10px]">
-              {proto.name}
-            </Badge>
-            {extraction.case_id && (
+      <div
+        className="-mx-4 -mt-4 min-h-full bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border)_35%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_35%,transparent)_1px,transparent_1px)] bg-[size:32px_32px] px-4 pt-4 sm:-mx-8 sm:px-8"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 h-7 text-muted-foreground">
+              <Link to="/extract">
+                <ArrowLeft className="mr-1 h-3.5 w-3.5" />
+                All extractions
+              </Link>
+            </Button>
+            <div className="flex items-start gap-3">
+              <h1 className="flex-1 font-serif text-3xl font-medium tracking-tight text-foreground">
+                {extraction.name}
+              </h1>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleDelete}
+                aria-label="Delete extraction"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="font-mono text-[10px]">
-                In a Case
+                {proto.name}
               </Badge>
+              {extraction.case_id && (
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  In a Case
+                </Badge>
+              )}
+              <StatusBadge status={extraction.status} />
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              {new Date(extraction.created_at).toLocaleString()}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={copyTSV} disabled={rows.length === 0}>
+              <Copy className="mr-2 h-3.5 w-3.5" />
+              Copy
+            </Button>
+            <Button size="sm" variant="outline" onClick={downloadCSV} disabled={rows.length === 0}>
+              <Download className="mr-2 h-3.5 w-3.5" />
+              CSV
+            </Button>
+            {!extraction.case_id && (
+              <Select onOpenChange={(o) => o && loadCases()} value="" onValueChange={saveToCase}>
+                <SelectTrigger className="h-8 w-[160px] text-xs">
+                  <FolderPlus className="mr-1.5 h-3.5 w-3.5" />
+                  <SelectValue placeholder="Save to Case" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cases === null ? (
+                    <div className="p-2 text-xs text-muted-foreground">Loading…</div>
+                  ) : cases.length === 0 ? (
+                    <div className="p-2 text-xs text-muted-foreground">No cases</div>
+                  ) : (
+                    cases.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs">
+                        {c.name}
+                        {savingCase === c.id && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             )}
-            <StatusBadge status={extraction.status} />
-            <span>{new Date(extraction.created_at).toLocaleString()}</span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={copyTSV} disabled={rows.length === 0}>
-            <Copy className="mr-2 h-3.5 w-3.5" />
-            Copy
-          </Button>
-          <Button size="sm" variant="outline" onClick={downloadCSV} disabled={rows.length === 0}>
-            <Download className="mr-2 h-3.5 w-3.5" />
-            CSV
-          </Button>
-          {!extraction.case_id && (
-            <Select onOpenChange={(o) => o && loadCases()} value="" onValueChange={saveToCase}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <FolderPlus className="mr-1.5 h-3.5 w-3.5" />
-                <SelectValue placeholder="Save to Case" />
-              </SelectTrigger>
-              <SelectContent>
-                {cases === null ? (
-                  <div className="p-2 text-xs text-muted-foreground">Loading…</div>
-                ) : cases.length === 0 ? (
-                  <div className="p-2 text-xs text-muted-foreground">No cases</div>
-                ) : (
-                  cases.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs">
-                      {c.name}
-                      {savingCase === c.id && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          )}
-          <Button size="sm" variant="ghost" onClick={handleDelete} className="text-destructive">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
 
-      <Card className="mt-6">
-        <CardContent className="p-0">
-          {extraction.status === "processing" ? (
-            <div className="flex items-center justify-center gap-3 p-16 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Extracting…
-            </div>
-          ) : extraction.status === "failed" ? (
-            <div className="p-8 text-sm text-destructive">
-              Extraction failed: {extraction.error ?? "unknown error"}
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              No rows were extracted from the provided documents.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+        <Card className="mt-6 bg-card/95 backdrop-blur">
+          <CardContent className="p-0">
+            {extraction.status === "processing" ? (
+              <div className="flex items-center justify-center gap-3 p-16 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Extracting…
+              </div>
+            ) : extraction.status === "failed" ? (
+              <div className="p-8 text-sm text-destructive">
+                Extraction failed: {extraction.error ?? "unknown error"}
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No rows were extracted from the provided documents.
+              </div>
+            ) : isFieldValue ? (
               <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <thead className="text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
                   <tr>
-                    {columns.map((c) => (
-                      <th key={c.key} className="px-4 py-3 font-medium">
-                        {c.label}
-                      </th>
-                    ))}
+                    <th className="w-1/3 px-6 py-3 font-medium">Field</th>
+                    <th className="px-6 py-3 font-medium">Value</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/70">
                   {rows.map((r, i) => (
                     <tr key={i} className="hover:bg-muted/20">
-                      {columns.map((c) => (
-                        <td key={c.key} className="px-4 py-3 align-top font-mono text-[13px] text-foreground">
-                          {r[c.key] || <span className="text-muted-foreground">—</span>}
-                        </td>
-                      ))}
+                      <td className="px-6 py-3 align-top font-mono text-[13px] text-muted-foreground">
+                        {r.field || <span className="text-muted-foreground/60">—</span>}
+                      </td>
+                      <td className="px-6 py-3 align-top font-mono text-[13px] text-foreground">
+                        {r.value || <span className="text-muted-foreground">—</span>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-[0.7rem] uppercase tracking-[0.14em] text-muted-foreground">
+                    <tr>
+                      {columns.map((c) => (
+                        <th key={c.key} className="px-4 py-3 font-medium">
+                          {c.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/70">
+                    {rows.map((r, i) => (
+                      <tr key={i} className="hover:bg-muted/20">
+                        {columns.map((c) => (
+                          <td key={c.key} className="px-4 py-3 align-top font-mono text-[13px] text-foreground">
+                            {r[c.key] || <span className="text-muted-foreground">—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </AppShell>
   );
 }
