@@ -196,6 +196,7 @@ function ProviderToolPage() {
                   Showing top 10 results. Add a specialty or city to narrow your search.
                 </div>
               )}
+              {results.map((r) => (
                 <Card key={r.npi}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
