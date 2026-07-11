@@ -31,13 +31,29 @@ async function searchPubmed(query: string, limit: number) {
     const authors = ((rec.authors as Array<{ name?: string }>) ?? [])
       .map((a) => a?.name)
       .filter(Boolean) as string[];
+    const details = abstracts.get(id) ?? {
+      abstract: "",
+      volume: "",
+      issue: "",
+      doi: "",
+      meshTerms: [] as string[],
+      keywords: [] as string[],
+    };
+    const articleIds = (rec.articleids as Array<{ idtype?: string; value?: string }>) ?? [];
+    const doiFromSummary =
+      articleIds.find((x) => x?.idtype?.toLowerCase() === "doi")?.value ?? "";
     return {
       pmid: id,
       title: (rec.title as string) ?? "",
       journal: (rec.fulljournalname as string) ?? (rec.source as string) ?? "",
       year: parseYear(rec.pubdate as string | undefined),
       authors,
-      abstract: abstracts.get(id) ?? "",
+      abstract: details.abstract,
+      volume: details.volume || ((rec.volume as string) ?? ""),
+      issue: details.issue || ((rec.issue as string) ?? ""),
+      doi: details.doi || doiFromSummary,
+      meshTerms: details.meshTerms,
+      keywords: details.keywords,
       url: buildPubmedArticleUrl(id),
     };
   });
@@ -45,15 +61,29 @@ async function searchPubmed(query: string, limit: number) {
   return { ids, articles };
 }
 
-async function fetchAbstracts(ids: string[]): Promise<Map<string, string>> {
+type ArticleDetails = {
+  abstract: string;
+  volume: string;
+  issue: string;
+  doi: string;
+  meshTerms: string[];
+  keywords: string[];
+};
+
+async function fetchAbstracts(ids: string[]): Promise<Map<string, ArticleDetails>> {
   const url = `${EUTILS}/efetch.fcgi?db=pubmed&rettype=abstract&retmode=xml&id=${ids.join(",")}`;
   const res = await fetch(url, { headers: { accept: "application/xml" } });
   if (!res.ok) return new Map();
   const xml = await res.text();
-  const map = new Map<string, string>();
+  const map = new Map<string, ArticleDetails>();
   const articleRe = /<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g;
   const pmidRe = /<PMID[^>]*>(\d+)<\/PMID>/;
   const absRe = /<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g;
+  const volRe = /<Volume>([\s\S]*?)<\/Volume>/;
+  const issueRe = /<Issue>([\s\S]*?)<\/Issue>/;
+  const doiRe = /<ArticleId IdType="doi"[^>]*>([\s\S]*?)<\/ArticleId>/i;
+  const meshRe = /<DescriptorName[^>]*>([\s\S]*?)<\/DescriptorName>/g;
+  const kwRe = /<Keyword[^>]*>([\s\S]*?)<\/Keyword>/g;
   const matches = xml.match(articleRe) ?? [];
   for (const block of matches) {
     const pmidM = pmidRe.exec(block);
@@ -64,10 +94,27 @@ async function fetchAbstracts(ids: string[]): Promise<Map<string, string>> {
     while ((m = absRe.exec(block)) !== null) {
       combined += (combined ? "\n\n" : "") + decodeEntities(stripTags(m[1]));
     }
-    map.set(pmid, combined);
+    const meshTerms: string[] = [];
+    while ((m = meshRe.exec(block)) !== null) {
+      meshTerms.push(decodeEntities(stripTags(m[1])).trim());
+    }
+    const keywords: string[] = [];
+    while ((m = kwRe.exec(block)) !== null) {
+      const t = decodeEntities(stripTags(m[1])).trim();
+      if (t) keywords.push(t);
+    }
+    map.set(pmid, {
+      abstract: combined,
+      volume: volRe.exec(block)?.[1]?.trim() ?? "",
+      issue: issueRe.exec(block)?.[1]?.trim() ?? "",
+      doi: doiRe.exec(block)?.[1]?.trim() ?? "",
+      meshTerms,
+      keywords,
+    });
   }
   return map;
 }
+
 
 function stripTags(s: string) {
   return s.replace(/<[^>]+>/g, "");
