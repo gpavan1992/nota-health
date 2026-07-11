@@ -85,7 +85,39 @@ export const Route = createFileRoute("/api/tools/provider")({
           });
           if (!res.ok) return Response.json({ error: `NPI ${res.status}` }, { status: 502 });
           const data = (await res.json()) as { results?: NpiResult[] };
-...
+
+          const results = (data.results ?? []).map((r) => {
+            const tax = (r.taxonomies ?? []).find((t) => t.primary) ?? r.taxonomies?.[0];
+            const loc =
+              (r.addresses ?? []).find((a) => a.address_purpose === "LOCATION") ??
+              r.addresses?.[0];
+            const basic = r.basic ?? {};
+            const isOrg = r.enumeration_type === "NPI-2";
+            const name = isOrg
+              ? basic.organization_name ?? ""
+              : [basic.first_name, basic.middle_name, basic.last_name]
+                  .filter(Boolean)
+                  .join(" ");
+            return {
+              npi: r.number,
+              type: isOrg ? "Organization" : "Individual",
+              name,
+              credential: basic.credential ?? null,
+              status: basic.status ?? null,
+              enumerated: basic.enumeration_date ?? null,
+              specialty: tax?.desc ?? null,
+              license: tax?.license ?? null,
+              license_state: tax?.state ?? null,
+              address: loc
+                ? [loc.address_1, loc.address_2].filter(Boolean).join(", ")
+                : null,
+              city: loc?.city ?? null,
+              state_code: loc?.state ?? null,
+              postal: loc?.postal_code ?? null,
+              phone: loc?.telephone_number ?? null,
+            };
+          });
+
           let filtered = results;
           if (!npi && specialty && specialty !== "Other" && specialtyKeywords[specialty]) {
             const kws = specialtyKeywords[specialty];
