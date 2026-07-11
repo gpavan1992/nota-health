@@ -71,3 +71,20 @@ export function useDeleteThread(userId: string) {
     },
   });
 }
+
+export function useRenameThread(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ threadId, title }: { threadId: string; title: string }) => {
+      const { error } = await supabase
+        .from("chat_threads")
+        .update({ title })
+        .eq("id", threadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_threads", userId] });
+    },
+  });
+}
+
