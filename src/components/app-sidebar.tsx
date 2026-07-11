@@ -297,19 +297,49 @@ export function AppSidebar({
               <SidebarMenu>
                 {threads.slice(0, 15).map((t) => (
                   <SidebarMenuItem key={t.id}>
-                    <SidebarMenuButton
-                      asChild
-                      size="sm"
-                      isActive={activeThreadId === t.id}
-                    >
-                      <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
-                        <MessageCircle />
-                        <span className="flex-1 truncate">{t.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <div className="group/thread relative flex items-center">
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={activeThreadId === t.id}
+                        className="pr-8"
+                      >
+                        <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
+                          <MessageCircle />
+                          <span className="flex-1 truncate">{t.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="Chat actions"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-sidebar-foreground/60 opacity-0 transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover/thread:opacity-100 data-[state=open]:opacity-100"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={() => setRenaming({ id: t.id, title: t.title })}
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleting({ id: t.id, title: t.title })}
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
+
             )}
           </SidebarGroupContent>
         </SidebarGroup>
