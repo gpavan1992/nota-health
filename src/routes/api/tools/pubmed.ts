@@ -24,7 +24,7 @@ async function searchPubmed(query: string, limit: number) {
   const result = sumJson.result ?? {};
 
   // Try to get abstracts in bulk via efetch.
-  const abstracts = await fetchAbstracts(ids).catch(() => new Map<string, string>());
+  const abstracts = await fetchAbstracts(ids).catch(() => new Map<string, ArticleDetails>());
 
   const articles: Article[] = ids.map((id) => {
     const rec = (result[id] as Record<string, unknown>) ?? {};
