@@ -42,20 +42,42 @@ export const Route = createFileRoute("/api/tools/provider")({
         const first = (url.searchParams.get("first") ?? "").trim();
         const last = (url.searchParams.get("last") ?? "").trim();
         const state = (url.searchParams.get("state") ?? "").trim().toUpperCase();
+        const city = (url.searchParams.get("city") ?? "").trim();
+        const specialty = (url.searchParams.get("specialty") ?? "").trim();
 
-        const params = new URLSearchParams({ version: "2.1", limit: "20" });
+        const params = new URLSearchParams({ version: "2.1", limit: "50" });
         if (npi) {
           params.set("number", npi);
         } else if (last) {
+          if (!state) {
+            return Response.json(
+              { error: "Please select a state to narrow results." },
+              { status: 400 },
+            );
+          }
           params.set("last_name", last);
           if (first) params.set("first_name", first);
-          if (state) params.set("state", state);
+          params.set("state", state);
+          if (city) params.set("city", city);
         } else {
           return Response.json(
-            { error: "Provide an NPI number, or a last name (state optional)." },
+            { error: "Provide an NPI number, or a last name with state." },
             { status: 400 },
           );
         }
+
+        // Map specialty select values to keywords matched against taxonomy desc
+        const specialtyKeywords: Record<string, string[]> = {
+          Cardiology: ["cardio"],
+          "General Medicine": ["family", "internal medicine", "general practice"],
+          Orthopaedics: ["orthopaedic", "orthopedic"],
+          Neurology: ["neurolog"],
+          Paediatrics: ["pediatric", "paediatric"],
+          Psychiatry: ["psychiat"],
+          Surgery: ["surgery", "surgeon", "surgical"],
+          "Obstetrics and Gynaecology": ["obstetric", "gynecolog", "gynaecolog"],
+          Radiology: ["radiolog"],
+        };
 
         try {
           const res = await fetch(`${NPI_API}?${params.toString()}`, {
@@ -63,40 +85,19 @@ export const Route = createFileRoute("/api/tools/provider")({
           });
           if (!res.ok) return Response.json({ error: `NPI ${res.status}` }, { status: 502 });
           const data = (await res.json()) as { results?: NpiResult[] };
+...
+          let filtered = results;
+          if (!npi && specialty && specialty !== "Other" && specialtyKeywords[specialty]) {
+            const kws = specialtyKeywords[specialty];
+            filtered = results.filter((r) =>
+              r.specialty ? kws.some((k) => r.specialty!.toLowerCase().includes(k)) : false,
+            );
+          }
 
-          const results = (data.results ?? []).map((r) => {
-            const tax = (r.taxonomies ?? []).find((t) => t.primary) ?? r.taxonomies?.[0];
-            const loc =
-              (r.addresses ?? []).find((a) => a.address_purpose === "LOCATION") ??
-              r.addresses?.[0];
-            const basic = r.basic ?? {};
-            const isOrg = r.enumeration_type === "NPI-2";
-            const name = isOrg
-              ? basic.organization_name ?? ""
-              : [basic.first_name, basic.middle_name, basic.last_name]
-                  .filter(Boolean)
-                  .join(" ");
-            return {
-              npi: r.number,
-              type: isOrg ? "Organization" : "Individual",
-              name,
-              credential: basic.credential ?? null,
-              status: basic.status ?? null,
-              enumerated: basic.enumeration_date ?? null,
-              specialty: tax?.desc ?? null,
-              license: tax?.license ?? null,
-              license_state: tax?.state ?? null,
-              address: loc
-                ? [loc.address_1, loc.address_2].filter(Boolean).join(", ")
-                : null,
-              city: loc?.city ?? null,
-              state_code: loc?.state ?? null,
-              postal: loc?.postal_code ?? null,
-              phone: loc?.telephone_number ?? null,
-            };
-          });
+          const totalMatched = filtered.length;
+          const capped = npi ? filtered : filtered.slice(0, 10);
 
-          return Response.json({ results });
+          return Response.json({ results: capped, totalMatched, capped: totalMatched > capped.length });
         } catch (err) {
           return Response.json(
             { error: (err as Error).message ?? "Upstream failure" },
