@@ -58,50 +58,38 @@ function DrugToolPage() {
 
 // --- text normalization helpers -------------------------------------------
 
-// FDA label sections come as one long blob with numbered headings baked in
-// ("1 INDICATIONS AND USAGE ...", "2.1 Recommended Dose ..."). Split into
-// scannable bullet points a clinician can read.
-function cleanLabelText(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  const text = raw
+function stripLabelNoise(raw: string): string {
+  return raw
     .replace(/\s+/g, " ")
-    .replace(/\(\s*(\d+(?:\.\d+)?)\s*\)/g, "") // strip ( 1 ), ( 2.1 ) refs
+    .replace(/\(\s*\d+(?:\.\d+)?\s*\)/g, "")
+    .replace(/^\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,}?\s+/, "")
     .trim();
+}
 
-  // Split on numbered section markers e.g. "2.1 Recommended Dose" or "2 DOSAGE ..."
-  const pieces = text
-    .split(/\s(?=\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,})/g)
-    .map((p) => p.trim())
-    .filter(Boolean);
+// One-line TL;DR: the first useful sentence, trimmed.
+function firstSentence(raw: string | null | undefined, max = 180): string | null {
+  if (!raw) return null;
+  const clean = stripLabelNoise(raw);
+  const m = clean.match(/^(.{20,}?[.!?])(\s|$)/);
+  const s = (m?.[1] ?? clean).trim();
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+}
 
-  const cleaned = pieces.map((p) =>
-    p
-      // drop leading numbering + ALLCAPS heading e.g. "2 DOSAGE AND ADMINISTRATION "
-      .replace(/^\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,}?\s+/, "")
-      .replace(/\s+/g, " ")
-      .trim(),
-  );
-
-  // Further break long paragraphs on sentence boundaries so each bullet stays short.
-  const bullets: string[] = [];
-  for (const c of cleaned) {
-    if (c.length <= 260) {
-      bullets.push(c);
-      continue;
-    }
-    const sentences = c.split(/(?<=[.!?])\s+(?=[A-Z(])/);
-    let buf = "";
-    for (const s of sentences) {
-      if ((buf + " " + s).trim().length > 260 && buf) {
-        bullets.push(buf.trim());
-        buf = s;
-      } else {
-        buf = (buf + " " + s).trim();
-      }
-    }
-    if (buf) bullets.push(buf.trim());
-  }
-  return bullets.filter((b) => b.length > 0);
+// Pull short, high-signal keywords out of a warnings/contraindications blob.
+const KEYWORDS = [
+  "pregnancy", "lactation", "renal impairment", "hepatic impairment",
+  "hypersensitivity", "lactic acidosis", "hypoglycemia", "hyperkalemia",
+  "bleeding", "qt prolongation", "pancreatitis", "heart failure",
+  "myocardial infarction", "stroke", "seizure", "angioedema",
+  "black box", "boxed warning", "children", "elderly", "geriatric",
+  "dialysis", "alcohol", "grapefruit",
+];
+function extractKeywords(raw: string | null | undefined, limit = 6): string[] {
+  if (!raw) return [];
+  const lower = raw.toLowerCase();
+  const hits = new Set<string>();
+  for (const k of KEYWORDS) if (lower.includes(k)) hits.add(k);
+  return Array.from(hits).slice(0, limit);
 }
 
 function DrugLookup() {
