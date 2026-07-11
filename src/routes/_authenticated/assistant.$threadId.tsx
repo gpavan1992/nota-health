@@ -51,8 +51,10 @@ type Attachment = {
   name: string;
   text: string;
   mime?: string;
-  /** Blob URL for preview; local session only. */
+  /** Blob URL for immediate preview during the current session. */
   url?: string;
+  /** Storage path in the `chat-attachments` bucket (persisted). */
+  path?: string;
   /** True when the parser returned no extractable text (e.g. scanned PDF). */
   empty?: boolean;
 };
@@ -186,27 +188,33 @@ function AssistantThread() {
         const parsed = await parseFile(f);
         const url = URL.createObjectURL(f);
         const mime = f.type || undefined;
+        // Persist to storage so the file survives reloads / other sessions.
+        const safeName = parsed.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${user.id}/${threadId}/${id}-${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("chat-attachments")
+          .upload(path, f, { contentType: mime, upsert: false });
+        if (upErr) {
+          toast.error(`Upload failed for ${parsed.name}: ${upErr.message}`);
+        }
         const att: Attachment = {
           id,
           name: parsed.name,
           text: parsed.text,
           mime,
           url,
+          path: upErr ? undefined : path,
           empty: !parsed.text && !parsed.image,
         };
-        previewMapRef.current.set(id, {
+        const src: PreviewSource = {
           name: parsed.name,
           url,
           mime,
           text: parsed.text || undefined,
-        });
-        // Also key by name for citations rendered from persisted messages
-        previewMapRef.current.set(parsed.name, {
-          name: parsed.name,
-          url,
-          mime,
-          text: parsed.text || undefined,
-        });
+        };
+        previewMapRef.current.set(id, src);
+        previewMapRef.current.set(parsed.name, src);
+        if (att.path) previewMapRef.current.set(att.path, src);
         setAttachments((a) => [...a, att]);
         if (att.empty && /\.pdf$/i.test(att.name)) {
           toast.warning(`"${att.name}": PDF text extraction not supported (scanned image). Upload a text-based PDF or run OCR first.`);
@@ -239,13 +247,42 @@ function AssistantThread() {
     setInput((v) => (v ? v + "\n\n" + text : text));
   }
 
-  function openCitation(name: string) {
-    const src = previewMapRef.current.get(name);
-    if (src) {
-      setPreview(src);
-    } else {
-      setPreview({ name, text: "Document not available in this session. Re-upload to preview." });
+  async function openCitation(name: string) {
+    // 1) Session cache hit
+    const cached = previewMapRef.current.get(name);
+    if (cached) {
+      setPreview(cached);
+      return;
     }
+    // 2) Look up the persisted path from saved messages
+    const allMsgs = [...(savedMessages ?? []), pendingUser].filter(Boolean) as ChatMessage[];
+    let path: string | undefined;
+    let mime: string | undefined;
+    for (const m of allMsgs) {
+      const atts = (m.attachments as { name: string; path?: string; mime?: string }[] | null | undefined) ?? [];
+      const hit = atts.find((a) => a.name === name && a.path);
+      if (hit) {
+        path = hit.path;
+        mime = hit.mime;
+        break;
+      }
+    }
+    if (path) {
+      setPreview({ name, text: "Loading preview…" });
+      const { data, error } = await supabase.storage
+        .from("chat-attachments")
+        .createSignedUrl(path, 60 * 60);
+      if (error || !data?.signedUrl) {
+        setPreview({ name, text: `Preview unavailable: ${error?.message ?? "no signed URL"}` });
+        return;
+      }
+      const src: PreviewSource = { name, url: data.signedUrl, mime };
+      previewMapRef.current.set(name, src);
+      previewMapRef.current.set(path, src);
+      setPreview(src);
+      return;
+    }
+    setPreview({ name, text: "This document was uploaded in an older session before file previews were saved. Re-upload to view it here." });
   }
 
   async function handleSend(e: FormEvent) {
@@ -327,7 +364,7 @@ function AssistantThread() {
         user_id: user.id,
         role: "user",
         content,
-        attachments: currentAttachments.map((a) => ({ name: a.name })),
+        attachments: currentAttachments.map((a) => ({ name: a.name, path: a.path, mime: a.mime })),
       })
       .select()
       .single();
@@ -405,7 +442,7 @@ function AssistantThread() {
         user_id: user.id,
         role: "assistant",
         content: finalText,
-        attachments: currentAttachments.map((a) => ({ name: a.name })),
+        attachments: currentAttachments.map((a) => ({ name: a.name, path: a.path, mime: a.mime })),
         steps: finalSteps,
       });
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
