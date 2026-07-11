@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Copy, Download, FolderPlus, Trash2, Loader2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -276,7 +276,6 @@ function ClinicalTable({
       <table className="w-full border-separate border-spacing-0 text-sm">
         <thead>
           <tr className="text-left text-[12px] font-medium text-muted-foreground">
-            <th className="w-10 px-4 py-3.5" aria-label="Select" />
             {columns.map((c) => (
               <th
                 key={c.key}
@@ -288,51 +287,29 @@ function ClinicalTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => {
-            const complete = columns.every((c) => (r[c.key] ?? "").trim().length > 0);
-            return (
-              <tr
-                key={i}
-                className="group transition-colors hover:bg-muted/40"
-              >
-                <td className="w-10 border-b border-border/40 px-4 py-3.5 align-middle">
-                  <Checkbox className="h-4 w-4 rounded-full border-border/70" />
-                </td>
-                {columns.map((c, ci) => {
-                  const raw = (r[c.key] ?? "").trim();
-                  const isLast = ci === columns.length - 1;
-                  return (
-                    <td
-                      key={c.key}
-                      className="relative border-b border-border/40 px-4 py-3.5 align-middle text-[13px] text-foreground"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="min-w-0 flex-1 truncate" title={raw}>
-                          {raw ? (
-                            enumCols[c.key] ? (
-                              <EnumPill value={raw} />
-                            ) : (
-                              <span className="text-foreground/90">{raw}</span>
-                            )
-                          ) : (
-                            <span className="text-muted-foreground/60">—</span>
-                          )}
-                        </div>
-                        {isLast && (
-                          <span
-                            aria-hidden
-                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                              complete ? "bg-success" : "bg-warning"
-                            }`}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
+          {rows.map((r, i) => (
+            <tr key={i} className="transition-colors hover:bg-muted/40">
+              {columns.map((c) => {
+                const raw = (r[c.key] ?? "").trim();
+                return (
+                  <td
+                    key={c.key}
+                    className="border-b border-border/40 px-4 py-3.5 align-top text-[13px] leading-relaxed text-foreground"
+                  >
+                    {raw ? (
+                      enumCols[c.key] ? (
+                        <EnumPill value={raw} />
+                      ) : (
+                        <span className="text-foreground/90">{raw}</span>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground/60">—</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -349,29 +326,16 @@ function ClinicalFieldValueTable({ rows }: { rows: Record<string, string>[] }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((r, i) => {
-          const has = (r.value ?? "").trim().length > 0;
-          return (
-            <tr key={i} className="hover:bg-muted/40">
-              <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-muted-foreground">
-                {r.field || <span className="text-muted-foreground/60">—</span>}
-              </td>
-              <td className="relative border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-foreground">
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    {has ? r.value : <span className="text-muted-foreground/60">—</span>}
-                  </div>
-                  <span
-                    aria-hidden
-                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                      has ? "bg-success" : "bg-warning"
-                    }`}
-                  />
-                </div>
-              </td>
-            </tr>
-          );
-        })}
+        {rows.map((r, i) => (
+          <tr key={i} className="hover:bg-muted/40">
+            <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-muted-foreground">
+              {r.field || <span className="text-muted-foreground/60">—</span>}
+            </td>
+            <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] leading-relaxed text-foreground">
+              {(r.value ?? "").trim() ? r.value : <span className="text-muted-foreground/60">—</span>}
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
