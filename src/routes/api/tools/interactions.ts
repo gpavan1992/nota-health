@@ -1,39 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  expandedDrugTerms,
+  fetchBestLabel,
+  labelText,
+  normalizeDrugTerm,
+  openFdaNames,
+  type LabelDoc,
+} from "@/lib/drug-label";
 
 // Best-effort interaction check using openFDA drug labels. For each pair,
 // we look inside each drug's `drug_interactions` label section for a mention
 // of the other drug's brand or generic name. Severity is a heuristic based on
 // language commonly used in FDA labels (contraindicated / avoid / warning).
 
-type LabelDoc = {
-  drug_interactions?: string[];
-  warnings?: string[];
-  contraindications?: string[];
-  openfda?: {
-    brand_name?: string[];
-    generic_name?: string[];
-    substance_name?: string[];
-  };
-};
-
-async function fetchLabel(name: string): Promise<LabelDoc | null> {
-  const escaped = name.replace(/["\\]/g, "");
-  const search = `(openfda.brand_name:"${escaped}"+OR+openfda.generic_name:"${escaped}"+OR+openfda.substance_name:"${escaped}")`;
-  const api = `https://api.fda.gov/drug/label.json?search=${search}&limit=1`;
-  const res = await fetch(api, { headers: { accept: "application/json" } });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { results?: LabelDoc[] };
-  return data.results?.[0] ?? null;
-}
-
 function nameTokens(label: LabelDoc | null, fallback: string): string[] {
-  const set = new Set<string>();
-  set.add(fallback.toLowerCase());
-  const of = label?.openfda ?? {};
-  for (const list of [of.brand_name, of.generic_name, of.substance_name]) {
-    for (const v of list ?? []) if (v) set.add(v.toLowerCase());
-  }
-  return Array.from(set).filter((n) => n.length > 2);
+  return expandedDrugTerms(fallback, label);
 }
 
 function findMatch(sections: string[] | undefined, tokens: string[]): string | null {
@@ -49,6 +30,15 @@ function findMatch(sections: string[] | undefined, tokens: string[]): string | n
     }
   }
   return null;
+}
+
+function cleanSnippet(snippet: string): string {
+  return snippet
+    .replace(/\s+/g, " ")
+    .replace(/\b\d+(?:\.\d+)?\s+[A-Z][A-Z\s]{3,}:?\s*/g, "")
+    .replace(/\(\s*\d+(?:\.\d+)?\s*\)/g, "")
+    .trim()
+    .slice(0, 360);
 }
 
 function severity(snippet: string): "Major" | "Moderate" | "Minor" {
@@ -76,6 +66,106 @@ function severity(snippet: string): "Major" | "Moderate" | "Minor" {
   return "Minor";
 }
 
+type InteractionResult = {
+  a: string;
+  b: string;
+  severity: "Major" | "Moderate" | "Minor";
+  snippet: string;
+  source: string;
+};
+
+type DrugConcepts = {
+  oralRoute: boolean;
+  delaysGastricEmptying: boolean;
+  glucoseLowering: boolean;
+  insulinOrSecretagogueWarning: boolean;
+  renalClearance: boolean;
+  lacticAcidosis: boolean;
+};
+
+function concepts(label: LabelDoc | null): DrugConcepts {
+  const of = label?.openfda ?? {};
+  const text = [
+    labelText(label),
+    ...(of.route ?? []),
+    ...(of.pharm_class_epc ?? []),
+    ...(of.pharm_class_moa ?? []),
+    ...(of.pharm_class_cs ?? []),
+    ...(of.pharm_class_pe ?? []),
+    ...openFdaNames(label),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    oralRoute: /\boral\b|tablet|capsule/.test(text),
+    delaysGastricEmptying: /delay(?:s|ed)? gastric emptying|other oral drugs|oral medications/.test(text),
+    glucoseLowering: /glucose|glycemic|hypoglycemia|diabetes|antidiabetic|glp-?1|sulfonylurea|biguanide|metformin|semaglutide|tirzepatide|insulin/.test(text),
+    insulinOrSecretagogueWarning: /insulin secretagogue|sulfonylurea|with insulin|hypoglycemia/.test(text),
+    renalClearance: /renal|kidney|creatinine|tubular secretion|metformin clearance/.test(text),
+    lacticAcidosis: /lactic acidosis/.test(text),
+  };
+}
+
+function displayName(input: string, label: LabelDoc | null): string {
+  const of = label?.openfda ?? {};
+  return of.brand_name?.[0] ?? of.generic_name?.[0] ?? input;
+}
+
+function semanticMatch(
+  aInput: string,
+  bInput: string,
+  labelA: LabelDoc | null,
+  labelB: LabelDoc | null,
+): InteractionResult | null {
+  const a = concepts(labelA);
+  const b = concepts(labelB);
+  const aName = displayName(aInput, labelA);
+  const bName = displayName(bInput, labelB);
+
+  if (a.delaysGastricEmptying && b.oralRoute) {
+    return {
+      a: aInput,
+      b: bInput,
+      severity: "Moderate",
+      snippet: `${aName} can delay gastric emptying. ${bName} is an oral medication, so monitor clinical response and tolerability; pay closer attention if the oral drug has a narrow therapeutic index or needs lab monitoring.`,
+      source: "FDA label semantic match",
+    };
+  }
+
+  if (b.delaysGastricEmptying && a.oralRoute) {
+    return {
+      a: aInput,
+      b: bInput,
+      severity: "Moderate",
+      snippet: `${bName} can delay gastric emptying. ${aName} is an oral medication, so monitor clinical response and tolerability; pay closer attention if the oral drug has a narrow therapeutic index or needs lab monitoring.`,
+      source: "FDA label semantic match",
+    };
+  }
+
+  if (a.glucoseLowering && b.glucoseLowering && (a.insulinOrSecretagogueWarning || b.insulinOrSecretagogueWarning)) {
+    return {
+      a: aInput,
+      b: bInput,
+      severity: "Moderate",
+      snippet: `${aName} and ${bName} both sit in a glucose-lowering regimen. No direct contraindication was found, but monitor glucose and GI tolerance, especially if insulin or a sulfonylurea is also present.`,
+      source: "FDA label semantic match",
+    };
+  }
+
+  if ((a.renalClearance && b.lacticAcidosis) || (b.renalClearance && a.lacticAcidosis)) {
+    return {
+      a: aInput,
+      b: bInput,
+      severity: "Moderate",
+      snippet: `The label language points to renal clearance and lactic-acidosis risk. Check eGFR, dehydration/AKI risk, and dose appropriateness before combining.`,
+      source: "FDA label semantic match",
+    };
+  }
+
+  return null;
+}
+
 export const Route = createFileRoute("/api/tools/interactions")({
   server: {
     handlers: {
@@ -91,16 +181,10 @@ export const Route = createFileRoute("/api/tools/interactions")({
           return Response.json({ error: "Provide at least two drug names" }, { status: 400 });
         }
 
-        const labels = await Promise.all(drugs.map((d) => fetchLabel(d).catch(() => null)));
+        const labels = await Promise.all(drugs.map((d) => fetchBestLabel(d).catch(() => null)));
         const tokens = labels.map((l, i) => nameTokens(l, drugs[i]));
 
-        const interactions: Array<{
-          a: string;
-          b: string;
-          severity: "Major" | "Moderate" | "Minor";
-          snippet: string;
-          source: "openFDA label";
-        }> = [];
+        const interactions: InteractionResult[] = [];
         const seen = new Set<string>();
 
         for (let i = 0; i < drugs.length; i++) {
@@ -127,22 +211,29 @@ export const Route = createFileRoute("/api/tools/interactions")({
               ],
               tokens[i],
             );
-            const snippet = matchInA ?? matchInB;
+            const directSnippet = matchInA ?? matchInB;
+            const semantic = semanticMatch(drugs[i], drugs[j], labelA, labelB);
+            const snippet = directSnippet ? cleanSnippet(directSnippet) : semantic?.snippet;
             if (!snippet) continue;
 
             interactions.push({
               a: drugs[i],
               b: drugs[j],
-              severity: severity(snippet),
+              severity: directSnippet ? severity(directSnippet) : (semantic?.severity ?? "Minor"),
               snippet,
-              source: "openFDA label",
+              source: directSnippet ? "FDA label direct mention" : (semantic?.source ?? "FDA label"),
             });
           }
         }
 
         return Response.json({
           drugs,
-          resolved: drugs.map((d, i) => ({ input: d, label_found: !!labels[i] })),
+          resolved: drugs.map((d, i) => ({
+            input: d,
+            label_found: !!labels[i],
+            matched_name: displayName(d, labels[i]),
+            normalized: normalizeDrugTerm(d),
+          })),
           interactions,
         });
       },
