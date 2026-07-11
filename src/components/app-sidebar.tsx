@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useRouterState, useNavigate, useParams } from "@tanstack/react-router";
 import {
   MessageSquareText,
@@ -13,6 +14,9 @@ import {
   UserRound,
   Hash,
   ShieldCheck,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,12 +30,43 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { NotaLogo } from "@/components/nota-logo";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/hooks/use-profile";
-import { useChatThreads, useCreateThread } from "@/hooks/use-chat-threads";
+import {
+  useChatThreads,
+  useCreateThread,
+  useDeleteThread,
+  useRenameThread,
+} from "@/hooks/use-chat-threads";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
 
 const NAV = [
   { title: "Clinical Assistant", to: "/assistant", icon: MessageSquareText },
@@ -84,6 +119,43 @@ export function AppSidebar({
   const { data: threads } = useChatThreads(user.id);
   const { data: recentCases } = useRecentCases(user.id);
   const createThread = useCreateThread(user.id);
+  const deleteThread = useDeleteThread(user.id);
+  const renameThread = useRenameThread(user.id);
+
+  const [renaming, setRenaming] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null);
+
+  function submitRename() {
+    if (!renaming) return;
+    const title = renaming.title.trim();
+    if (!title) return;
+    renameThread.mutate(
+      { threadId: renaming.id, title },
+      {
+        onSuccess: () => {
+          toast.success("Renamed");
+          setRenaming(null);
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  }
+
+  function confirmDelete() {
+    if (!deleting) return;
+    const id = deleting.id;
+    deleteThread.mutate(id, {
+      onSuccess: () => {
+        toast.success("Chat deleted");
+        setDeleting(null);
+        if (activeThreadId === id) {
+          navigate({ to: "/assistant" });
+        }
+      },
+      onError: (e) => toast.error(e.message),
+    });
+  }
+
 
   function handleNewChat() {
     createThread.mutate(undefined, {
@@ -102,7 +174,9 @@ export function AppSidebar({
     .join("");
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r-0">
+
       <SidebarHeader className="px-4 pt-5 pb-2">
         <Link
           to="/assistant"
@@ -225,19 +299,49 @@ export function AppSidebar({
               <SidebarMenu>
                 {threads.slice(0, 15).map((t) => (
                   <SidebarMenuItem key={t.id}>
-                    <SidebarMenuButton
-                      asChild
-                      size="sm"
-                      isActive={activeThreadId === t.id}
-                    >
-                      <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
-                        <MessageCircle />
-                        <span className="flex-1 truncate">{t.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <div className="group/thread relative flex items-center">
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={activeThreadId === t.id}
+                        className="pr-8"
+                      >
+                        <Link to="/assistant/$threadId" params={{ threadId: t.id }}>
+                          <MessageCircle />
+                          <span className="flex-1 truncate">{t.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="Chat actions"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-sidebar-foreground/60 opacity-0 transition-opacity hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-hover/thread:opacity-100 data-[state=open]:opacity-100"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={() => setRenaming({ id: t.id, title: t.title })}
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleting({ id: t.id, title: t.title })}
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
+
             )}
           </SidebarGroupContent>
         </SidebarGroup>
@@ -274,5 +378,58 @@ export function AppSidebar({
         </div>
       </SidebarFooter>
     </Sidebar>
+
+    <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Rename chat</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renaming?.title ?? ""}
+          onChange={(e) =>
+            setRenaming((r) => (r ? { ...r, title: e.target.value } : r))
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitRename();
+            }
+          }}
+          autoFocus
+          placeholder="Chat title"
+        />
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setRenaming(null)}>
+            Cancel
+          </Button>
+          <Button onClick={submitRename} disabled={renameThread.isPending}>
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+          <AlertDialogDescription>
+            &ldquo;{deleting?.title}&rdquo; and all of its messages will be permanently removed.
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
