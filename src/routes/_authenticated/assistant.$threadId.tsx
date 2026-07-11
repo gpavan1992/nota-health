@@ -51,8 +51,10 @@ type Attachment = {
   name: string;
   text: string;
   mime?: string;
-  /** Blob URL for preview; local session only. */
+  /** Blob URL for immediate preview during the current session. */
   url?: string;
+  /** Storage path in the `chat-attachments` bucket (persisted). */
+  path?: string;
   /** True when the parser returned no extractable text (e.g. scanned PDF). */
   empty?: boolean;
 };
