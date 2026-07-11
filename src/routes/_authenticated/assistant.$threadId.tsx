@@ -720,12 +720,19 @@ function MessageBubble({
     <div className="max-w-[95%]">
       {steps && steps.length > 0 && <MessageSteps steps={steps} running={running} />}
       <div
-        className={
-          "whitespace-pre-wrap text-[0.95rem] leading-relaxed text-foreground " +
-          (streaming ? "assistant-streaming" : "")
-        }
+        className={cn(
+          "prose prose-sm max-w-none text-foreground",
+          "prose-headings:font-serif prose-headings:font-medium prose-headings:text-foreground",
+          "prose-h1:text-xl prose-h2:text-lg prose-h3:text-base",
+          "prose-p:my-2 prose-p:leading-relaxed",
+          "prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5",
+          "prose-strong:text-foreground prose-strong:font-semibold",
+          "prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.85em] prose-code:before:content-none prose-code:after:content-none",
+          "prose-table:text-xs prose-th:bg-muted",
+          streaming && "assistant-streaming",
+        )}
       >
-        {content}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         {streaming && (
           <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-primary align-middle" />
         )}
