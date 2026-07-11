@@ -376,5 +376,58 @@ export function AppSidebar({
         </div>
       </SidebarFooter>
     </Sidebar>
+
+    <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Rename chat</DialogTitle>
+        </DialogHeader>
+        <Input
+          value={renaming?.title ?? ""}
+          onChange={(e) =>
+            setRenaming((r) => (r ? { ...r, title: e.target.value } : r))
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitRename();
+            }
+          }}
+          autoFocus
+          placeholder="Chat title"
+        />
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setRenaming(null)}>
+            Cancel
+          </Button>
+          <Button onClick={submitRename} disabled={renameThread.isPending}>
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+          <AlertDialogDescription>
+            &ldquo;{deleting?.title}&rdquo; and all of its messages will be permanently removed.
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
