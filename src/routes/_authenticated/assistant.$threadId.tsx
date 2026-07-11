@@ -307,7 +307,7 @@ function AssistantThread() {
       content = `Attached documents:\n\n${docsBlock}\n\nQuestion:\n${trimmed}`;
     }
 
-    // Build standardized execution steps (Mike-style)
+    // Build standardized execution steps (Claude-style, clinical language)
     const steps: ChatStep[] = [];
     const readableDocs = currentAttachments.filter((a) => a.text && a.text.trim().length > 0);
     const emptyDocs = currentAttachments.filter((a) => a.empty);
@@ -316,23 +316,27 @@ function AssistantThread() {
       const isPdf = /\.pdf$/i.test(a.name);
       steps.push({
         kind: "read",
-        label: `Read ${a.name}`,
+        label: a.empty ? `Opened ${a.name} — no readable text` : `Reviewing ${a.name}`,
         status: a.empty ? "warn" : "ok",
         detail: a.empty
           ? isPdf
-            ? "PDF text extraction not supported — this file appears to be a scanned image with no selectable text layer. Upload a text-based PDF or run OCR first."
-            : "No extractable text found in this file."
-          : `Extracted ~${a.text.length.toLocaleString()} characters across ${Math.max(1, Math.ceil(a.text.length / 3000))} section(s).`,
+            ? "This PDF appears to be a scanned image with no selectable text. Please upload a text-based PDF or run OCR before asking clinical questions about it."
+            : "No readable text was found in this file."
+          : `Read the full record (~${a.text.length.toLocaleString()} characters, ${Math.max(1, Math.ceil(a.text.length / 3000))} section${Math.ceil(a.text.length / 3000) === 1 ? "" : "s"}).`,
       });
     }
 
     if (currentAttachments.length > 0) {
       const analyzeDetail = [
-        `**Analyzing Document Structure**`,
-        `Reviewing ${currentAttachments.length} attached document${currentAttachments.length === 1 ? "" : "s"} (${readableDocs.length} readable, ${emptyDocs.length} without extractable text) to answer:`,
+        `Reviewing ${currentAttachments.length} patient record${currentAttachments.length === 1 ? "" : "s"} (${readableDocs.length} readable, ${emptyDocs.length} without extractable text) against the clinician's question:`,
         `"${trimmed}"`,
-      ].join("\n");
-      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: analyzeDetail });
+      ].join("\n\n");
+      steps.push({
+        kind: "thought",
+        label: "Understanding the clinical question",
+        status: "ok",
+        detail: analyzeDetail,
+      });
 
       const keywords = trimmed
         .toLowerCase()
@@ -345,17 +349,26 @@ function AssistantThread() {
           const matches = a.text.match(re)?.length ?? 0;
           steps.push({
             kind: "search",
-            label: `Found "${kw}" (${matches} match${matches === 1 ? "" : "es"}) in ${a.name}`,
+            label:
+              matches > 0
+                ? `Found ${matches} reference${matches === 1 ? "" : "s"} to "${kw}" in ${a.name}`
+                : `No references to "${kw}" in ${a.name}`,
             status: matches > 0 ? "ok" : "warn",
           });
         }
       }
 
       const synthDetail = emptyDocs.length && !readableDocs.length
-        ? `**Confirming Lack of Text**\nAll attached files returned no extractable text. Preparing a message that OCR or a text-based PDF is required.`
-        : `**Synthesizing Answer**\nGrounding response strictly in the extracted document text and preparing structured output with citations.`;
-      steps.push({ kind: "thought", label: "Thought process", status: "ok", detail: synthDetail });
+        ? `The attached file${emptyDocs.length === 1 ? "" : "s"} contained no readable text. Preparing a note asking the clinician to upload a text-based version or run OCR.`
+        : `Cross-checking findings against the source record and preparing a grounded clinical summary with citations.`;
+      steps.push({
+        kind: "thought",
+        label: "Synthesizing clinical findings",
+        status: "ok",
+        detail: synthDetail,
+      });
     }
+
 
     const { data: userMsg, error: userErr } = await supabase
       .from("chat_messages")
@@ -388,8 +401,8 @@ function AssistantThread() {
     setStreamText("");
     setLiveSteps(
       steps.length
-        ? [...steps.map((s, i) => (i === steps.length - 1 ? { ...s, status: "running" as const, label: "Generating answer" } : s))]
-        : [{ kind: "answer", label: "Generating answer", status: "running" }],
+        ? [...steps.map((s, i) => (i === steps.length - 1 ? { ...s, status: "running" as const, label: "Drafting clinical summary" } : s))]
+        : [{ kind: "answer", label: "Drafting clinical summary", status: "running" }],
     );
     setStreaming(true);
 
@@ -421,7 +434,7 @@ function AssistantThread() {
         : [];
       finalSteps.push({
         kind: "answer",
-        label: acc.trim() ? "Answer ready" : "No answer produced",
+        label: acc.trim() ? "Clinical summary ready" : "Unable to produce a clinical summary",
         status: acc.trim() ? "ok" : "warn",
       });
 
