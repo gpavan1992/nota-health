@@ -144,6 +144,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          steps: Json
           thread_id: string
           user_id: string
         }
@@ -153,6 +154,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          steps?: Json
           thread_id: string
           user_id: string
         }
@@ -162,6 +164,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          steps?: Json
           thread_id?: string
           user_id?: string
         }
