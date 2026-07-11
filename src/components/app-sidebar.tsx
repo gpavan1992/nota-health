@@ -174,7 +174,9 @@ export function AppSidebar({
     .join("");
 
   return (
+    <>
     <Sidebar collapsible="icon" className="border-r-0">
+
       <SidebarHeader className="px-4 pt-5 pb-2">
         <Link
           to="/assistant"
