@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2, Pill, Plus, Search, X, AlertTriangle } from "lucide-react";
+import { Loader2, Pill, Plus, Search, X, AlertTriangle, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tools/drug")({
   head: () => ({ meta: [{ title: "Drug Database — Nota Health" }] }),
@@ -53,6 +54,54 @@ function DrugToolPage() {
       </p>
     </AppShell>
   );
+}
+
+// --- text normalization helpers -------------------------------------------
+
+// FDA label sections come as one long blob with numbered headings baked in
+// ("1 INDICATIONS AND USAGE ...", "2.1 Recommended Dose ..."). Split into
+// scannable bullet points a clinician can read.
+function cleanLabelText(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const text = raw
+    .replace(/\s+/g, " ")
+    .replace(/\(\s*(\d+(?:\.\d+)?)\s*\)/g, "") // strip ( 1 ), ( 2.1 ) refs
+    .trim();
+
+  // Split on numbered section markers e.g. "2.1 Recommended Dose" or "2 DOSAGE ..."
+  const pieces = text
+    .split(/\s(?=\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,})/g)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const cleaned = pieces.map((p) =>
+    p
+      // drop leading numbering + ALLCAPS heading e.g. "2 DOSAGE AND ADMINISTRATION "
+      .replace(/^\d+(?:\.\d+)?\s+[A-Z][A-Z ]{2,}?\s+/, "")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
+
+  // Further break long paragraphs on sentence boundaries so each bullet stays short.
+  const bullets: string[] = [];
+  for (const c of cleaned) {
+    if (c.length <= 260) {
+      bullets.push(c);
+      continue;
+    }
+    const sentences = c.split(/(?<=[.!?])\s+(?=[A-Z(])/);
+    let buf = "";
+    for (const s of sentences) {
+      if ((buf + " " + s).trim().length > 260 && buf) {
+        bullets.push(buf.trim());
+        buf = s;
+      } else {
+        buf = (buf + " " + s).trim();
+      }
+    }
+    if (buf) bullets.push(buf.trim());
+  }
+  return bullets.filter((b) => b.length > 0);
 }
 
 function DrugLookup() {
@@ -107,22 +156,37 @@ function DrugLookup() {
         )}
 
         {info && (
-          <div className="mt-5 space-y-4 text-sm">
-            <div>
-              <div className="font-serif text-lg text-foreground">
+          <div className="mt-5 space-y-5">
+            {/* header pill */}
+            <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+              <div className="font-serif text-lg leading-tight text-foreground">
                 {info.brand_name ?? info.generic_name ?? "Unnamed"}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {info.generic_name && info.brand_name ? `generic: ${info.generic_name}` : null}
-                {info.route ? ` · route: ${info.route.toLowerCase()}` : null}
-                {info.manufacturer ? ` · ${info.manufacturer}` : null}
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {info.generic_name && info.brand_name ? (
+                  <span>
+                    Generic <span className="text-foreground/80">{info.generic_name.toLowerCase()}</span>
+                  </span>
+                ) : null}
+                {info.route ? (
+                  <span>
+                    Route <span className="text-foreground/80">{info.route.toLowerCase()}</span>
+                  </span>
+                ) : null}
+                {info.manufacturer ? (
+                  <span>
+                    Mfr <span className="text-foreground/80">{info.manufacturer}</span>
+                  </span>
+                ) : null}
               </div>
             </div>
-            <Section label="What it treats" text={info.indications} />
-            <Section label="Dosage and administration" text={info.dosage} />
-            <Section label="Warnings" text={info.warnings} tone="warn" />
-            <Section label="Contraindications" text={info.contraindications} tone="warn" />
-            <Section label="Side effects" text={info.adverse_reactions} />
+
+            <ClinicalSection label="Indications" text={info.indications} />
+            <ClinicalSection label="Dosage & administration" text={info.dosage} />
+            <ClinicalSection label="Warnings" text={info.warnings} tone="warn" />
+            <ClinicalSection label="Contraindications" text={info.contraindications} tone="warn" />
+            <ClinicalSection label="Common side effects" text={info.adverse_reactions} />
+            <ClinicalSection label="Drug interactions" text={info.drug_interactions} tone="warn" />
           </div>
         )}
 
@@ -134,7 +198,7 @@ function DrugLookup() {
   );
 }
 
-function Section({
+function ClinicalSection({
   label,
   text,
   tone,
@@ -143,20 +207,52 @@ function Section({
   text: string | null;
   tone?: "warn";
 }) {
-  if (!text) return null;
+  const bullets = useMemo(() => cleanLabelText(text), [text]);
+  const [expanded, setExpanded] = useState(false);
+  if (bullets.length === 0) return null;
+
+  const visible = expanded ? bullets : bullets.slice(0, 3);
+  const canExpand = bullets.length > 3;
+
   return (
-    <div>
-      <div
-        className={`text-[0.68rem] font-medium uppercase tracking-[0.14em] ${
-          tone === "warn" ? "text-destructive" : "text-muted-foreground"
-        }`}
-      >
-        {label}
+    <section>
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            tone === "warn" ? "bg-destructive" : "bg-primary",
+          )}
+        />
+        <h4
+          className={cn(
+            "text-[0.68rem] font-semibold uppercase tracking-[0.14em]",
+            tone === "warn" ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {label}
+        </h4>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-[0.9rem] leading-relaxed text-foreground/90 line-clamp-[12]">
-        {text}
-      </p>
-    </div>
+      <ul className="space-y-1.5 pl-3.5">
+        {visible.map((b, i) => (
+          <li
+            key={i}
+            className="relative text-[0.9rem] leading-relaxed text-foreground/90 before:absolute before:-left-3.5 before:top-[0.6em] before:h-1 before:w-1 before:rounded-full before:bg-muted-foreground/50"
+          >
+            {b}
+          </li>
+        ))}
+      </ul>
+      {canExpand && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          {expanded ? "Show less" : `Show ${bullets.length - 3} more`}
+          <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -168,28 +264,32 @@ function InteractionChecker() {
   const [interactions, setInteractions] = useState<Interaction[] | null>(null);
   const [resolved, setResolved] = useState<Array<{ input: string; label_found: boolean }>>([]);
 
-  function addDrug() {
-    const v = drug.trim();
-    if (!v) return;
-    if (drugs.length >= 8) return;
+  function addDrug(nameArg?: string): string[] {
+    const v = (nameArg ?? drug).trim();
+    if (!v) return drugs;
+    if (drugs.length >= 8) return drugs;
     if (drugs.some((d) => d.toLowerCase() === v.toLowerCase())) {
       setDrug("");
-      return;
+      return drugs;
     }
-    setDrugs((prev) => [...prev, v]);
+    const next = [...drugs, v];
+    setDrugs(next);
     setDrug("");
+    return next;
   }
   function removeDrug(name: string) {
     setDrugs((prev) => prev.filter((d) => d !== name));
   }
 
   async function checkNow() {
-    if (drugs.length < 2) return;
+    // Auto-add whatever's in the input so a doctor doesn't have to press + first.
+    const list = drug.trim() ? addDrug() : drugs;
+    if (list.length < 2) return;
     setLoading(true);
     setError(null);
     setInteractions(null);
     try {
-      const res = await fetch(`/api/tools/interactions?drugs=${encodeURIComponent(drugs.join(","))}`);
+      const res = await fetch(`/api/tools/interactions?drugs=${encodeURIComponent(list.join(","))}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Check failed");
       setInteractions(data.interactions ?? []);
@@ -200,6 +300,9 @@ function InteractionChecker() {
       setLoading(false);
     }
   }
+
+  const effectiveCount = drugs.length + (drug.trim() ? 1 : 0);
+  const canCheck = effectiveCount >= 2 && !loading;
 
   return (
     <Card>
@@ -219,14 +322,14 @@ function InteractionChecker() {
                 addDrug();
               }
             }}
-            placeholder="Add a drug (press Enter)"
+            placeholder="Add a drug and press Enter"
           />
-          <Button type="button" variant="outline" onClick={addDrug}>
+          <Button type="button" variant="outline" onClick={() => addDrug()} disabled={!drug.trim()}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
 
-        {drugs.length > 0 && (
+        {drugs.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
             {drugs.map((d) => (
               <span
@@ -244,20 +347,21 @@ function InteractionChecker() {
               </span>
             ))}
           </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Add at least two medications to screen for documented interactions.
+          </p>
         )}
 
-        <Button
-          type="button"
-          className="mt-4 w-full"
-          onClick={checkNow}
-          disabled={drugs.length < 2 || loading}
-        >
+        <Button type="button" className="mt-4 w-full" onClick={checkNow} disabled={!canCheck}>
           {loading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Search className="mr-2 h-4 w-4" />
           )}
-          Check interactions
+          {effectiveCount < 2
+            ? `Add ${2 - effectiveCount} more drug${2 - effectiveCount === 1 ? "" : "s"} to check`
+            : `Check ${effectiveCount} drugs for interactions`}
         </Button>
 
         {error && (
