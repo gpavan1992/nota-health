@@ -177,9 +177,9 @@ function ArticleList({ articles, emptyLabel }: { articles: Article[]; emptyLabel
       {articles.map((a) => (
         <li key={a.pmid} className="rounded-md border border-border p-3">
           <a
-            href={a.url}
+            href={`https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/`}
             target="_blank"
-            rel="noreferrer noopener external"
+            rel="noopener noreferrer"
             className="group inline-flex items-start gap-1.5 font-medium text-foreground hover:text-primary"
           >
             <span className="line-clamp-2 text-[0.95rem] leading-snug">{a.title}</span>
