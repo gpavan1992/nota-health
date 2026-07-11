@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/tools/icd")({
-  head: () => ({ meta: [{ title: "ICD Code Lookup — Nota Health" }] }),
+  head: () => ({ meta: [{ title: "ICD-10 Code Lookup — Nota Health" }] }),
   component: IcdToolPage,
 });
 
@@ -50,9 +50,9 @@ function IcdToolPage() {
   return (
     <AppShell user={user}>
       <PageHeader
-        eyebrow="Clinical Tools · ICD Code Lookup"
+        eyebrow="Clinical Tools · ICD-10 Code Lookup"
         title="Find the right code, fast."
-        body="Search by condition name or by code. Nothing you search is stored."
+        body="Search ICD-10 diagnosis codes used in US medical billing and documentation. Nothing you search is stored."
       />
 
       <Card className="mt-8">
