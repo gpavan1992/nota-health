@@ -364,7 +364,7 @@ function AssistantThread() {
         user_id: user.id,
         role: "user",
         content,
-        attachments: currentAttachments.map((a) => ({ name: a.name })),
+        attachments: currentAttachments.map((a) => ({ name: a.name, path: a.path, mime: a.mime })),
       })
       .select()
       .single();
@@ -442,7 +442,7 @@ function AssistantThread() {
         user_id: user.id,
         role: "assistant",
         content: finalText,
-        attachments: currentAttachments.map((a) => ({ name: a.name })),
+        attachments: currentAttachments.map((a) => ({ name: a.name, path: a.path, mime: a.mime })),
         steps: finalSteps,
       });
       qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
