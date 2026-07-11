@@ -435,7 +435,9 @@ function AssistantThread() {
     setStreaming(true);
 
     const anyEmpty = currentAttachments.some((a) => a.empty);
-    const systemPrefix = anyEmpty ? `NOTE: ${NO_TEXT_NOTE}\n\n` : "";
+    const tableHint =
+      "\n\nFORMAT: When presenting medications, diagnoses, lab values, vitals, or any list of comparable clinical items, render them as a GitHub-flavored markdown table with clear column headers. Use short prose only for narrative summary and reasoning.";
+    const systemPrefix = (anyEmpty ? `NOTE: ${NO_TEXT_NOTE}` : "") + tableHint + "\n\n";
 
     const history: WireMessage[] = [
       ...(savedMessages ?? []).map((m) => ({ role: m.role as WireMessage["role"], content: m.content })),
