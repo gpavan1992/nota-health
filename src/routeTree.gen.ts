@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,7 +19,6 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProtocolsRouteImport } from './routes/_authenticated/protocols'
 import { Route as AuthenticatedExtractRouteImport } from './routes/_authenticated/extract'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedComplianceRouteImport } from './routes/_authenticated/compliance'
 import { Route as AuthenticatedCasesRouteImport } from './routes/_authenticated/cases'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedExtractIndexRouteImport } from './routes/_authenticated/extract.index'
@@ -45,6 +45,11 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceRoute = ComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -79,11 +84,6 @@ const AuthenticatedExtractRoute = AuthenticatedExtractRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedComplianceRoute = AuthenticatedComplianceRouteImport.update({
-  id: '/compliance',
-  path: '/compliance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCasesRoute = AuthenticatedCasesRouteImport.update({
@@ -182,11 +182,11 @@ const AuthenticatedAssistantThreadIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/compliance': typeof ComplianceRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/assistant': typeof AuthenticatedAssistantRouteWithChildren
   '/cases': typeof AuthenticatedCasesRouteWithChildren
-  '/compliance': typeof AuthenticatedComplianceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/extract': typeof AuthenticatedExtractRouteWithChildren
   '/protocols': typeof AuthenticatedProtocolsRoute
@@ -210,9 +210,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/compliance': typeof ComplianceRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/compliance': typeof AuthenticatedComplianceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/protocols': typeof AuthenticatedProtocolsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -237,11 +237,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/compliance': typeof ComplianceRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRouteWithChildren
   '/_authenticated/cases': typeof AuthenticatedCasesRouteWithChildren
-  '/_authenticated/compliance': typeof AuthenticatedComplianceRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/extract': typeof AuthenticatedExtractRouteWithChildren
   '/_authenticated/protocols': typeof AuthenticatedProtocolsRoute
@@ -267,11 +267,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/compliance'
     | '/privacy'
     | '/terms'
     | '/assistant'
     | '/cases'
-    | '/compliance'
     | '/dashboard'
     | '/extract'
     | '/protocols'
@@ -295,9 +295,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/compliance'
     | '/privacy'
     | '/terms'
-    | '/compliance'
     | '/dashboard'
     | '/protocols'
     | '/settings'
@@ -321,11 +321,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/compliance'
     | '/privacy'
     | '/terms'
     | '/_authenticated/assistant'
     | '/_authenticated/cases'
-    | '/_authenticated/compliance'
     | '/_authenticated/dashboard'
     | '/_authenticated/extract'
     | '/_authenticated/protocols'
@@ -351,6 +351,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ComplianceRoute: typeof ComplianceRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiToolsDrugRoute: typeof ApiToolsDrugRoute
@@ -374,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance': {
+      id: '/compliance'
+      path: '/compliance'
+      fullPath: '/compliance'
+      preLoaderRoute: typeof ComplianceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -423,13 +431,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/compliance': {
-      id: '/_authenticated/compliance'
-      path: '/compliance'
-      fullPath: '/compliance'
-      preLoaderRoute: typeof AuthenticatedComplianceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cases': {
@@ -599,7 +600,6 @@ const AuthenticatedExtractRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRouteWithChildren
   AuthenticatedCasesRoute: typeof AuthenticatedCasesRouteWithChildren
-  AuthenticatedComplianceRoute: typeof AuthenticatedComplianceRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExtractRoute: typeof AuthenticatedExtractRouteWithChildren
   AuthenticatedProtocolsRoute: typeof AuthenticatedProtocolsRoute
@@ -613,7 +613,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAssistantRoute: AuthenticatedAssistantRouteWithChildren,
   AuthenticatedCasesRoute: AuthenticatedCasesRouteWithChildren,
-  AuthenticatedComplianceRoute: AuthenticatedComplianceRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExtractRoute: AuthenticatedExtractRouteWithChildren,
   AuthenticatedProtocolsRoute: AuthenticatedProtocolsRoute,
@@ -631,6 +630,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ComplianceRoute: ComplianceRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiToolsDrugRoute: ApiToolsDrugRoute,
