@@ -10,6 +10,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SiteFooter } from "@/components/site-footer";
+
 import { useProfile } from "@/hooks/use-profile";
 
 export function AppShell({
