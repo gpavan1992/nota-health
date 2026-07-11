@@ -135,15 +135,36 @@ function ProviderToolPage() {
                 inputMode="numeric"
               />
             ) : (
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_100px]">
-                <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="First name (optional)" />
-                <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Last name" />
-                <Input
-                  value={state}
-                  onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
-                  placeholder="State"
-                  maxLength={2}
-                />
+              <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_100px]">
+                  <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="First name (optional)" />
+                  <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Last name" />
+                  <Input
+                    value={state}
+                    onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                    placeholder="State (required)"
+                    maxLength={2}
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City (optional)"
+                  />
+                  <Select value={specialty} onValueChange={setSpecialty}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Specialty (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPECIALTIES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
             <Button type="submit" disabled={loading} className="w-fit">
