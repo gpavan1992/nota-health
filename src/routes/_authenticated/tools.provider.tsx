@@ -191,7 +191,11 @@ function ProviderToolPage() {
             <p className="p-6 text-sm text-muted-foreground">No providers matched.</p>
           ) : (
             <div className="grid gap-3">
-              {results.map((r) => (
+              {capped && (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  Showing top 10 results. Add a specialty or city to narrow your search.
+                </div>
+              )}
                 <Card key={r.npi}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
