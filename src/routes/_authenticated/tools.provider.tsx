@@ -58,15 +58,19 @@ function ProviderToolPage() {
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [state, setState] = useState("");
+  const [city, setCity] = useState("");
+  const [specialty, setSpecialty] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ProviderResult[] | null>(null);
+  const [capped, setCapped] = useState(false);
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setResults(null);
+    setCapped(false);
     const params = new URLSearchParams();
     if (mode === "npi") {
       if (!/^\d{10}$/.test(npi.trim())) {
@@ -81,15 +85,23 @@ function ProviderToolPage() {
         setError("Enter at least a last name.");
         return;
       }
+      if (!state.trim()) {
+        setLoading(false);
+        setError("Please select a state to narrow results.");
+        return;
+      }
       params.set("last", last.trim());
       if (first.trim()) params.set("first", first.trim());
-      if (state.trim()) params.set("state", state.trim());
+      params.set("state", state.trim());
+      if (city.trim()) params.set("city", city.trim());
+      if (specialty) params.set("specialty", specialty);
     }
     try {
       const res = await fetch(`/api/tools/provider?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Lookup failed");
       setResults(data.results ?? []);
+      setCapped(Boolean(data.capped));
     } catch (err) {
       setError((err as Error).message);
     } finally {
