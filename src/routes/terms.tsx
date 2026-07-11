@@ -362,6 +362,8 @@ function TermsPage() {
           </div>
         </div>
       </main>
+      <SiteFooter />
+
     </div>
   );
 }
