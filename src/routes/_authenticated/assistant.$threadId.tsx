@@ -14,6 +14,7 @@ import {
   Loader2,
   Paperclip,
   Plus,
+  Sparkles,
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -770,31 +771,41 @@ function MessageBubble({
   if (role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="flex max-w-[85%] flex-col items-end gap-1.5">
-          <div className="whitespace-pre-wrap rounded-2xl bg-primary px-4 py-2.5 text-sm text-primary-foreground">
-            {content.replace(/^Attached documents:[\s\S]*?Question:\n/, "")}
-          </div>
+        <div className="flex max-w-[85%] flex-col items-end gap-2">
           {uniqueAttachments.length > 0 && (
-            <div className="flex flex-wrap justify-end gap-1.5">
+            <div className="flex w-full flex-col gap-1.5">
               {uniqueAttachments.map((a) => (
                 <button
                   key={a.name}
                   type="button"
                   onClick={() => onOpenCitation?.(a.name)}
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[0.7rem] text-foreground hover:bg-accent"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left text-xs hover:bg-accent"
                 >
-                  <FileText className="h-3 w-3 text-primary" />
-                  {a.name}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate font-medium text-foreground">{a.name}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2 py-0.5 text-[0.65rem] font-medium text-success">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                    Ready
+                  </span>
                 </button>
               ))}
             </div>
           )}
+          <div className="whitespace-pre-wrap rounded-2xl bg-primary px-4 py-2.5 text-sm text-primary-foreground">
+            {content.replace(/^Attached documents:[\s\S]*?Question:\n/, "")}
+          </div>
         </div>
       </div>
     );
   }
   return (
     <div className="max-w-[95%]">
+      <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-primary">
+        <Sparkles className="h-3.5 w-3.5" />
+        Clinical Assistant
+      </div>
       {steps && steps.length > 0 && <MessageSteps steps={steps} running={running} />}
       <div
         className={cn(
