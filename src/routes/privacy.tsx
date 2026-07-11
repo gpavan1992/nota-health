@@ -236,6 +236,8 @@ function PrivacyPage() {
           </div>
         </div>
       </main>
+      <SiteFooter />
+
     </div>
   );
 }
