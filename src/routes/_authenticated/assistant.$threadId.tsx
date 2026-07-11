@@ -514,7 +514,7 @@ function AssistantThread() {
                   key={m.id}
                   role={m.role}
                   content={m.content}
-                  steps={(m as unknown as { steps?: ChatStep[] }).steps ?? []}
+                  steps={normalizeSteps((m as unknown as { steps?: ChatStep[] }).steps ?? [])}
                   attachments={
                     (m.attachments as { name: string }[] | null | undefined) ?? []
                   }
