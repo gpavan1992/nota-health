@@ -18,8 +18,8 @@ type LabelDoc = {
 
 async function fetchLabel(name: string): Promise<LabelDoc | null> {
   const escaped = name.replace(/["\\]/g, "");
-  const search = `(openfda.brand_name:"${escaped}"+openfda.generic_name:"${escaped}"+openfda.substance_name:"${escaped}")`;
-  const api = `https://api.fda.gov/drug/label.json?search=${encodeURIComponent(search)}&limit=1`;
+  const search = `(openfda.brand_name:"${escaped}"+OR+openfda.generic_name:"${escaped}"+OR+openfda.substance_name:"${escaped}")`;
+  const api = `https://api.fda.gov/drug/label.json?search=${search}&limit=1`;
   const res = await fetch(api, { headers: { accept: "application/json" } });
   if (!res.ok) return null;
   const data = (await res.json()) as { results?: LabelDoc[] };
