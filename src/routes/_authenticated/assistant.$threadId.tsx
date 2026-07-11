@@ -401,8 +401,8 @@ function AssistantThread() {
     setStreamText("");
     setLiveSteps(
       steps.length
-        ? [...steps.map((s, i) => (i === steps.length - 1 ? { ...s, status: "running" as const, label: "Generating answer" } : s))]
-        : [{ kind: "answer", label: "Generating answer", status: "running" }],
+        ? [...steps.map((s, i) => (i === steps.length - 1 ? { ...s, status: "running" as const, label: "Drafting clinical summary" } : s))]
+        : [{ kind: "answer", label: "Drafting clinical summary", status: "running" }],
     );
     setStreaming(true);
 
