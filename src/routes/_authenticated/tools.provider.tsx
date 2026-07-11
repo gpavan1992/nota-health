@@ -8,6 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const SPECIALTIES = [
+  "Cardiology",
+  "General Medicine",
+  "Orthopaedics",
+  "Neurology",
+  "Paediatrics",
+  "Psychiatry",
+  "Surgery",
+  "Obstetrics and Gynaecology",
+  "Radiology",
+  "Other",
+];
 
 export const Route = createFileRoute("/_authenticated/tools/provider")({
   head: () => ({ meta: [{ title: "Provider Verification — Nota Health" }] }),
