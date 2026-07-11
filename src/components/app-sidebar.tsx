@@ -119,6 +119,43 @@ export function AppSidebar({
   const { data: threads } = useChatThreads(user.id);
   const { data: recentCases } = useRecentCases(user.id);
   const createThread = useCreateThread(user.id);
+  const deleteThread = useDeleteThread(user.id);
+  const renameThread = useRenameThread(user.id);
+
+  const [renaming, setRenaming] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null);
+
+  function submitRename() {
+    if (!renaming) return;
+    const title = renaming.title.trim();
+    if (!title) return;
+    renameThread.mutate(
+      { threadId: renaming.id, title },
+      {
+        onSuccess: () => {
+          toast.success("Renamed");
+          setRenaming(null);
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  }
+
+  function confirmDelete() {
+    if (!deleting) return;
+    const id = deleting.id;
+    deleteThread.mutate(id, {
+      onSuccess: () => {
+        toast.success("Chat deleted");
+        setDeleting(null);
+        if (activeThreadId === id) {
+          navigate({ to: "/assistant" });
+        }
+      },
+      onError: (e) => toast.error(e.message),
+    });
+  }
+
 
   function handleNewChat() {
     createThread.mutate(undefined, {
