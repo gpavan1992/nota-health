@@ -326,29 +326,16 @@ function ClinicalFieldValueTable({ rows }: { rows: Record<string, string>[] }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((r, i) => {
-          const has = (r.value ?? "").trim().length > 0;
-          return (
-            <tr key={i} className="hover:bg-muted/40">
-              <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-muted-foreground">
-                {r.field || <span className="text-muted-foreground/60">—</span>}
-              </td>
-              <td className="relative border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-foreground">
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    {has ? r.value : <span className="text-muted-foreground/60">—</span>}
-                  </div>
-                  <span
-                    aria-hidden
-                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                      has ? "bg-success" : "bg-warning"
-                    }`}
-                  />
-                </div>
-              </td>
-            </tr>
-          );
-        })}
+        {rows.map((r, i) => (
+          <tr key={i} className="hover:bg-muted/40">
+            <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] text-muted-foreground">
+              {r.field || <span className="text-muted-foreground/60">—</span>}
+            </td>
+            <td className="border-b border-border/40 px-6 py-3.5 align-top text-[13px] leading-relaxed text-foreground">
+              {(r.value ?? "").trim() ? r.value : <span className="text-muted-foreground/60">—</span>}
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
