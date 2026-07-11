@@ -95,8 +95,28 @@ function AssistantThread() {
   }, [seed, threadId]);
 
 
-  const modelId = profile?.ai_model ?? "claude-sonnet-4-5";
-  const provider = (getModelChoice(modelId).provider ?? "anthropic") as "anthropic" | "openai" | "google";
+  // Pick the initial model: use the user's saved choice when it matches a
+  // provider they actually have a key for; otherwise fall back to the latest
+  // model of whichever key is saved (Gemini → OpenAI → Anthropic).
+  const savedModel = profile?.ai_model ?? null;
+  const savedProvider = savedModel ? getModelChoice(savedModel).provider ?? null : null;
+  const hasKeyFor = {
+    google: !!profile?.google_api_key,
+    openai: !!profile?.openai_api_key,
+    anthropic: !!profile?.anthropic_api_key,
+  } as const;
+  const fallbackModel = hasKeyFor.google
+    ? "gemini-3-5-flash"
+    : hasKeyFor.openai
+      ? "gpt-5-5"
+      : hasKeyFor.anthropic
+        ? "claude-fable-5"
+        : "gemini-3-5-flash";
+  const modelId =
+    savedModel && savedProvider && hasKeyFor[savedProvider as "google" | "openai" | "anthropic"]
+      ? savedModel
+      : fallbackModel;
+  const provider = (getModelChoice(modelId).provider ?? "google") as "anthropic" | "openai" | "google";
   const apiKey =
     provider === "google"
       ? (profile?.google_api_key ?? "")
@@ -105,6 +125,15 @@ function AssistantThread() {
         : (profile?.anthropic_api_key ?? "");
   const displayName = profile?.full_name?.split(" ")[0] || user.email?.split("@")[0] || "there";
   const providerLabel = provider === "google" ? "Google Gemini" : provider === "openai" ? "OpenAI" : "Anthropic";
+
+  // Persist the auto-selected model so Settings and other surfaces agree.
+  useEffect(() => {
+    if (profile && modelId !== profile.ai_model) {
+      updateProfile.mutate({ ai_model: modelId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, modelId]);
+
 
   async function loadCases() {
     if (caseList) return;
