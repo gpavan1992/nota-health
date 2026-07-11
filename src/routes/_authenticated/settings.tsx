@@ -1036,6 +1036,7 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
         label="Anthropic (Claude) API Key"
         placeholder="sk-ant-…"
         initial={profile.anthropic_api_key ?? ""}
+        currentModel={profile.ai_model ?? null}
       />
       <ApiKeyCard
         userId={userId}
@@ -1043,6 +1044,7 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
         label="OpenAI API Key"
         placeholder="sk-…"
         initial={profile.openai_api_key ?? ""}
+        currentModel={profile.ai_model ?? null}
       />
       <ApiKeyCard
         userId={userId}
@@ -1050,6 +1052,7 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
         label="Google (Gemini) API Key"
         placeholder="AIza…"
         initial={profile.google_api_key ?? ""}
+        currentModel={profile.ai_model ?? null}
       />
       <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -1059,27 +1062,35 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
   );
 }
 
+// Provider → default (latest) model to auto-select when a key is first saved.
+const PROVIDER_DEFAULT_MODEL: Record<
+  "anthropic_api_key" | "openai_api_key" | "google_api_key",
+  { provider: "anthropic" | "openai" | "google"; value: string }
+> = {
+  anthropic_api_key: { provider: "anthropic", value: "claude-fable-5" },
+  openai_api_key: { provider: "openai", value: "gpt-5-5" },
+  google_api_key: { provider: "google", value: "gemini-3-5-flash" },
+};
+
 function ApiKeyCard({
   userId,
   field,
   label,
   placeholder,
   initial,
+  currentModel,
 }: {
   userId: string;
   field: "anthropic_api_key" | "openai_api_key" | "google_api_key";
   label: string;
   placeholder: string;
   initial: string;
+  currentModel: string | null;
 }) {
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
   const [editing, setEditing] = useState(!initial);
   const update = useUpdateProfile(userId);
-
-  const maskedPreview = initial
-    ? `${initial.slice(0, 4)}${"•".repeat(Math.max(4, Math.min(20, initial.length - 8)))}${initial.slice(-4)}`
-    : "";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -1093,8 +1104,21 @@ function ApiKeyCard({
       return;
     }
     try {
-      await update.mutateAsync({ [field]: trimmed });
-      toast.success(`${label} saved`);
+      const def = PROVIDER_DEFAULT_MODEL[field];
+      const currentProvider = currentModel
+        ? findModel(currentModel)?.group.id ?? null
+        : null;
+      const shouldSetDefault = !currentModel || currentProvider !== def.provider;
+
+      const patch: Record<string, string> = { [field]: trimmed };
+      if (shouldSetDefault) patch.ai_model = def.value;
+
+      await update.mutateAsync(patch);
+      toast.success(
+        shouldSetDefault
+          ? `${label} saved — default model set`
+          : `${label} saved`,
+      );
       setValue("");
       setShow(false);
       setEditing(false);
@@ -1121,31 +1145,30 @@ function ApiKeyCard({
       </CardHeader>
       <CardContent>
         {!editing ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <KeyRound className="h-4 w-4 shrink-0 text-primary" />
-              <span className="truncate font-mono text-sm text-muted-foreground">
-                {maskedPreview}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button
+          <div className="space-y-3">
+            <Input
+              value=""
+              readOnly
+              disabled
+              placeholder="Saved key hidden"
+              className="font-mono text-sm disabled:cursor-default disabled:opacity-100"
+            />
+            <div className="flex items-center justify-end gap-4 text-sm">
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clear}
-                disabled={update.isPending}
-              >
-                Remove
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => setEditing(true)}
+                className="font-medium text-muted-foreground transition hover:text-foreground"
               >
                 Replace
-              </Button>
+              </button>
+              <button
+                type="button"
+                onClick={clear}
+                disabled={update.isPending}
+                className="font-medium text-destructive transition hover:text-destructive/80 disabled:opacity-50"
+              >
+                Remove
+              </button>
             </div>
           </div>
         ) : (
