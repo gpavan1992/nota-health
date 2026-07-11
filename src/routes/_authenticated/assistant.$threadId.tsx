@@ -14,6 +14,7 @@ import {
   Loader2,
   Paperclip,
   Plus,
+  Sparkles,
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
