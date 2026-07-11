@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
+// @ts-expect-error - Vite bundles the pdf.js worker from the package.
+import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import {
   Sheet,
   SheetContent,
@@ -7,6 +10,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
 
 export type PreviewSource = {
   name: string;
@@ -131,11 +136,7 @@ export function DocumentPreviewSheet({
           ) : isImage && renderUrl ? (
             <img src={renderUrl} alt={source.name} className="mx-auto max-w-full" />
           ) : isPdf && renderUrl ? (
-            <iframe
-              src={`${renderUrl}#toolbar=1&view=FitH`}
-              title={source.name}
-              className="h-full min-h-[80vh] w-full border-0"
-            />
+            <PdfInlinePreview url={renderUrl} name={source.name} />
           ) : isDocx && renderUrl ? (
             loadingDocx ? (
               <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
@@ -167,5 +168,81 @@ export function DocumentPreviewSheet({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function PdfInlinePreview({ url, name }: { url: string; name: string }) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let loadingTask: { destroy: () => Promise<void> } | null = null;
+
+    setLoading(true);
+    setError(null);
+    if (hostRef.current) hostRef.current.innerHTML = "";
+
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to fetch PDF (${res.status})`);
+        const data = await res.arrayBuffer();
+        loadingTask = pdfjsLib.getDocument({ data });
+        const pdf = await loadingTask.promise;
+        const host = hostRef.current;
+        if (!host || cancelled) return;
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          if (cancelled) break;
+          const page = await pdf.getPage(pageNumber);
+          const baseViewport = page.getViewport({ scale: 1 });
+          const availableWidth = Math.min(host.clientWidth || 760, 980) - 32;
+          const scale = Math.max(0.8, Math.min(1.8, availableWidth / baseViewport.width));
+          const viewport = page.getViewport({ scale });
+
+          const pageShell = document.createElement("section");
+          pageShell.className = "mx-auto mb-4 w-fit max-w-full overflow-hidden rounded-sm border border-border bg-white shadow-sm";
+          pageShell.setAttribute("aria-label", `${name} page ${pageNumber}`);
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Could not create PDF canvas");
+          const pixelRatio = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * pixelRatio);
+          canvas.height = Math.floor(viewport.height * pixelRatio);
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
+          context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+          pageShell.appendChild(canvas);
+          host.appendChild(pageShell);
+          await page.render({ canvasContext: context, viewport }).promise;
+        }
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (hostRef.current) hostRef.current.innerHTML = "";
+      void loadingTask?.destroy();
+    };
+  }, [url, name]);
+
+  return (
+    <div className="min-h-[80vh] p-4">
+      {loading && (
+        <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Rendering PDF…
+        </div>
+      )}
+      {error && <div className="p-6 text-sm text-destructive">Failed to render PDF: {error}</div>}
+      <div ref={hostRef} aria-label={`${name} PDF preview`} className={loading ? "hidden" : "space-y-4"} />
+    </div>
   );
 }
