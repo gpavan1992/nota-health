@@ -801,6 +801,10 @@ function MessageBubble({
   }
   return (
     <div className="max-w-[95%]">
+      <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-primary">
+        <Sparkles className="h-3.5 w-3.5" />
+        Clinical Assistant
+      </div>
       {steps && steps.length > 0 && <MessageSteps steps={steps} running={running} />}
       <div
         className={cn(
