@@ -8,6 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const SPECIALTIES = [
+  "Cardiology",
+  "General Medicine",
+  "Orthopaedics",
+  "Neurology",
+  "Paediatrics",
+  "Psychiatry",
+  "Surgery",
+  "Obstetrics and Gynaecology",
+  "Radiology",
+  "Other",
+];
 
 export const Route = createFileRoute("/_authenticated/tools/provider")({
   head: () => ({ meta: [{ title: "Provider Verification — Nota Health" }] }),
@@ -38,15 +58,19 @@ function ProviderToolPage() {
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [state, setState] = useState("");
+  const [city, setCity] = useState("");
+  const [specialty, setSpecialty] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ProviderResult[] | null>(null);
+  const [capped, setCapped] = useState(false);
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setResults(null);
+    setCapped(false);
     const params = new URLSearchParams();
     if (mode === "npi") {
       if (!/^\d{10}$/.test(npi.trim())) {
@@ -61,15 +85,23 @@ function ProviderToolPage() {
         setError("Enter at least a last name.");
         return;
       }
+      if (!state.trim()) {
+        setLoading(false);
+        setError("Please select a state to narrow results.");
+        return;
+      }
       params.set("last", last.trim());
       if (first.trim()) params.set("first", first.trim());
-      if (state.trim()) params.set("state", state.trim());
+      params.set("state", state.trim());
+      if (city.trim()) params.set("city", city.trim());
+      if (specialty) params.set("specialty", specialty);
     }
     try {
       const res = await fetch(`/api/tools/provider?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Lookup failed");
       setResults(data.results ?? []);
+      setCapped(Boolean(data.capped));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -103,15 +135,36 @@ function ProviderToolPage() {
                 inputMode="numeric"
               />
             ) : (
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_100px]">
-                <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="First name (optional)" />
-                <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Last name" />
-                <Input
-                  value={state}
-                  onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
-                  placeholder="State"
-                  maxLength={2}
-                />
+              <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_100px]">
+                  <Input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="First name (optional)" />
+                  <Input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Last name" />
+                  <Input
+                    value={state}
+                    onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                    placeholder="State (required)"
+                    maxLength={2}
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City (optional)"
+                  />
+                  <Select value={specialty} onValueChange={setSpecialty}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Specialty (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPECIALTIES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
             <Button type="submit" disabled={loading} className="w-fit">
@@ -138,6 +191,11 @@ function ProviderToolPage() {
             <p className="p-6 text-sm text-muted-foreground">No providers matched.</p>
           ) : (
             <div className="grid gap-3">
+              {capped && (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  Showing top 10 results. Add a specialty or city to narrow your search.
+                </div>
+              )}
               {results.map((r) => (
                 <Card key={r.npi}>
                   <CardContent className="pt-6">
