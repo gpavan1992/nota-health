@@ -434,7 +434,7 @@ function AssistantThread() {
         : [];
       finalSteps.push({
         kind: "answer",
-        label: acc.trim() ? "Answer ready" : "No answer produced",
+        label: acc.trim() ? "Clinical summary ready" : "Unable to produce a clinical summary",
         status: acc.trim() ? "ok" : "warn",
       });
 
