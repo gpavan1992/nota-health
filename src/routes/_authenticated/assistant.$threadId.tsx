@@ -760,7 +760,9 @@ function MessageBubble({
         <div className="mt-2 flex items-center gap-1">
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={handleCopyCitations}
+            aria-label="Copy citations"
+            title="Copy citations"
             aria-label="Copy response"
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
