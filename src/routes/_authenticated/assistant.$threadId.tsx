@@ -30,6 +30,33 @@ import { useChatMessages, type ChatMessage } from "@/hooks/use-chat-threads";
 import { streamChat, getModelChoice, type WireMessage } from "@/lib/chat-stream";
 import { GroupedModelSelect } from "@/components/grouped-model-select";
 import { MessageSteps, type ChatStep } from "@/components/message-steps";
+
+// Rewrites legacy technical step labels stored on older messages into the
+// current clinical phrasing so historical threads match the new UI.
+function normalizeSteps(steps: ChatStep[]): ChatStep[] {
+  return steps.map((s) => {
+    let label = s.label;
+    if (/^Read\s+/i.test(label)) label = label.replace(/^Read\s+/i, "Reviewing ");
+    if (/^Thought process$/i.test(label)) {
+      label = s.detail && /Synthesiz/i.test(s.detail)
+        ? "Synthesizing clinical findings"
+        : "Understanding the clinical question";
+    }
+    if (/^Found\s+"(.+)"\s+\((\d+)\s+match(?:es)?\)\s+in\s+(.+)$/i.test(label)) {
+      label = label.replace(
+        /^Found\s+"(.+)"\s+\((\d+)\s+match(?:es)?\)\s+in\s+(.+)$/i,
+        (_m, kw, n, file) =>
+          Number(n) > 0
+            ? `Found ${n} reference${n === "1" ? "" : "s"} to "${kw}" in ${file}`
+            : `No references to "${kw}" in ${file}`,
+      );
+    }
+    if (/^Generating answer$/i.test(label)) label = "Drafting clinical summary";
+    if (/^Answer ready$/i.test(label)) label = "Clinical summary ready";
+    if (/^No answer produced$/i.test(label)) label = "Unable to produce a clinical summary";
+    return { ...s, label };
+  });
+}
 import {
   DocumentPreviewSheet,
   type PreviewSource,
@@ -514,7 +541,7 @@ function AssistantThread() {
                   key={m.id}
                   role={m.role}
                   content={m.content}
-                  steps={(m as unknown as { steps?: ChatStep[] }).steps ?? []}
+                  steps={normalizeSteps((m as unknown as { steps?: ChatStep[] }).steps ?? [])}
                   attachments={
                     (m.attachments as { name: string }[] | null | undefined) ?? []
                   }
