@@ -1069,7 +1069,7 @@ const PROVIDER_DEFAULT_MODEL: Record<
 > = {
   anthropic_api_key: { provider: "anthropic", value: "claude-fable-5" },
   openai_api_key: { provider: "openai", value: "gpt-5-5" },
-  google_api_key: { provider: "google", value: "gemini-3-5-flash" },
+  google_api_key: { provider: "google", value: "gemini-2-5-flash" },
 };
 
 function ApiKeyCard({

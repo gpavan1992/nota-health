@@ -46,10 +46,11 @@ export const MODEL_GROUPS: ProviderGroup[] = [
     ring: "ring-[#4285F4]/25",
     bg: "bg-[#4285F4]/10",
     models: [
-      { value: "gemini-3-5-flash", label: "Gemini 3.5 Flash", apiModel: "gemini-3.5-flash" },
-      { value: "gemini-3-1-pro", label: "Gemini 3.1 Pro", apiModel: "gemini-3.1-pro-preview" },
-      { value: "gemini-3-flash", label: "Gemini 3 Flash", apiModel: "gemini-3-flash-preview" },
-      { value: "gemini-3-1-flash-lite", label: "Gemini 3.1 Flash Lite", apiModel: "gemini-3.1-flash-lite" },
+      { value: "gemini-2-5-pro", label: "Gemini 2.5 Pro", apiModel: "gemini-2.5-pro" },
+      { value: "gemini-2-5-flash", label: "Gemini 2.5 Flash", apiModel: "gemini-2.5-flash" },
+      { value: "gemini-2-0-flash", label: "Gemini 2.0 Flash", apiModel: "gemini-2.0-flash" },
+      { value: "gemini-1-5-flash", label: "Gemini 1.5 Flash", apiModel: "gemini-1.5-flash" },
+      { value: "gemini-1-5-pro", label: "Gemini 1.5 Pro", apiModel: "gemini-1.5-pro" },
     ],
   },
   {
