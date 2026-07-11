@@ -38,7 +38,7 @@ async function searchPubmed(query: string, limit: number) {
       year: parseYear(rec.pubdate as string | undefined),
       authors,
       abstract: abstracts.get(id) ?? "",
-      url: `/api/tools/pubmed?source=${encodeURIComponent(id)}`,
+      url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
     };
   });
 
