@@ -78,6 +78,7 @@ function ProtocolsPage() {
   const [deactivatedIds, setDeactivatedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<CustomProtocol | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setCustoms(loadCustomProtocols());
