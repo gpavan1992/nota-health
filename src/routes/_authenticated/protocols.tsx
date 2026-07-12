@@ -48,11 +48,16 @@ import {
   BUILT_IN_PROTOCOLS,
   loadCustomProtocols,
   saveCustomProtocol,
+  updateCustomProtocol,
   deleteCustomProtocol,
+  loadDeactivatedIds,
+  deactivateBuiltIn,
+  activateBuiltIn,
   type ClinicalProtocol,
   type CustomProtocol,
   type ProtocolType,
 } from "@/lib/clinical-protocols";
+
 
 export const Route = createFileRoute("/_authenticated/protocols")({
   head: () => ({ meta: [{ title: "Protocols — Nota Health" }] }),
