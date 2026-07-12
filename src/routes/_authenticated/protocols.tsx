@@ -11,6 +11,8 @@ import {
   Play,
   Pencil,
   Power,
+  Power,
+  ChevronDown,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
