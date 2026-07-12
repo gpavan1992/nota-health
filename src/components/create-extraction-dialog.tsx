@@ -143,6 +143,18 @@ export function CreateExtractionDialog({
     setBusy(true);
     const proto = getProtocol(protocolId);
 
+    // If we're running a custom protocol with column definitions, use those.
+    const effectiveColumns: ProtocolColumn[] =
+      customColumns.length > 0
+        ? customColumns.map((c) => ({
+            key: c.id,
+            label: c.title,
+            format: c.format,
+            prompt: c.prompt,
+          }))
+        : (proto.columns as ProtocolColumn[]);
+    const effectiveProtocolName = customProto?.name ?? proto.name;
+
     // Insert as processing
     const { data: inserted, error: insertErr } = await supabase
       .from("extractions")
@@ -153,7 +165,7 @@ export function CreateExtractionDialog({
         case_id: linkCase && caseId ? caseId : null,
         source_documents: docs.map((d) => ({ name: d.name })),
         status: "processing",
-        columns: proto.columns as unknown as never,
+        columns: effectiveColumns as unknown as never,
         rows: [],
       })
       .select()
@@ -167,9 +179,9 @@ export function CreateExtractionDialog({
       const result = await runExtraction({
         apiKey,
         modelId,
-        protocolName: proto.name,
-        columns: proto.columns as unknown as never,
-        customInstruction: protocolId === "custom" ? customInstruction : undefined,
+        protocolName: effectiveProtocolName,
+        columns: effectiveColumns,
+        customInstruction: protocolId === "custom" && customColumns.length === 0 ? customInstruction : undefined,
         documents: usable,
       });
       await supabase
