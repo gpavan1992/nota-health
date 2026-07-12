@@ -1,5 +1,41 @@
 export type ProtocolType = "assistant" | "extraction";
 
+export type ColumnFormat =
+  | "free_text"
+  | "bulleted_list"
+  | "medication_entry"
+  | "clinical_value"
+  | "icd10"
+  | "yes_no"
+  | "date"
+  | "number"
+  | "provider"
+  | "currency";
+
+export const COLUMN_FORMAT_OPTIONS: { value: ColumnFormat; label: string; hint?: string }[] = [
+  { value: "free_text", label: "Free Text" },
+  { value: "bulleted_list", label: "Bulleted List" },
+  { value: "medication_entry", label: "Medication Entry", hint: "Drug | Dose | Frequency | Route" },
+  { value: "clinical_value", label: "Clinical Value", hint: "value with HIGH/LOW/NORMAL flag" },
+  { value: "icd10", label: "ICD-10 Code", hint: "code + description" },
+  { value: "yes_no", label: "Yes / No / Not Mentioned" },
+  { value: "date", label: "Date" },
+  { value: "number", label: "Number" },
+  { value: "provider", label: "Provider Name" },
+  { value: "currency", label: "Currency / Cost" },
+];
+
+export function formatLabel(f: ColumnFormat): string {
+  return COLUMN_FORMAT_OPTIONS.find((o) => o.value === f)?.label ?? "Free Text";
+}
+
+export interface ExtractionColumnDef {
+  id: string;
+  title: string;
+  format: ColumnFormat;
+  prompt: string;
+}
+
 export interface ClinicalProtocol {
   id: string;
   name: string;
@@ -10,6 +46,55 @@ export interface ClinicalProtocol {
   seedPrompt?: string;
   /** For extraction protocols, maps to an entry in src/lib/protocols.ts */
   extractionProtocolId?: string;
+  /** Custom extraction column schema (custom protocols only). */
+  extractionColumns?: ExtractionColumnDef[];
+}
+
+export interface ExtractionTemplate {
+  id: string;
+  name: string;
+  columns: Omit<ExtractionColumnDef, "id" | "prompt">[];
+}
+
+export const EXTRACTION_TEMPLATES: ExtractionTemplate[] = [
+  {
+    id: "prior_auth",
+    name: "Prior Authorization Checklist",
+    columns: [
+      { title: "Patient Name", format: "free_text" },
+      { title: "Primary Diagnosis", format: "icd10" },
+      { title: "Requested Procedure", format: "free_text" },
+      { title: "Clinical Justification", format: "free_text" },
+      { title: "Previous Treatments", format: "bulleted_list" },
+      { title: "Denial Risk Factors", format: "bulleted_list" },
+    ],
+  },
+  {
+    id: "med_comparison",
+    name: "Medication Comparison",
+    columns: [
+      { title: "Document Date", format: "date" },
+      { title: "Medications Listed", format: "medication_entry" },
+      { title: "Medications Added", format: "bulleted_list" },
+      { title: "High Alert Medications Present", format: "yes_no" },
+    ],
+  },
+  {
+    id: "lab_tracker",
+    name: "Lab Results Tracker",
+    columns: [
+      { title: "Test Date", format: "date" },
+      { title: "HbA1c", format: "clinical_value" },
+      { title: "eGFR", format: "clinical_value" },
+      { title: "Serum Creatinine", format: "clinical_value" },
+      { title: "Fasting Glucose", format: "clinical_value" },
+      { title: "LDL Cholesterol", format: "clinical_value" },
+    ],
+  },
+];
+
+export function newColumnId(): string {
+  return `col_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export const BUILT_IN_PROTOCOLS: ClinicalProtocol[] = [

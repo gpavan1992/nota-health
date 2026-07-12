@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
-import { PROTOCOLS, getProtocol } from "@/lib/protocols";
+import { PROTOCOLS, getProtocol, type ProtocolColumn } from "@/lib/protocols";
 import { getModelChoice } from "@/lib/chat-stream";
 import { runExtraction } from "@/lib/run-extraction";
 import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
+import { getClinicalProtocol } from "@/lib/clinical-protocols";
 
 type Doc = ParsedDoc & { parsing?: boolean; error?: string };
 
@@ -36,12 +37,14 @@ export function CreateExtractionDialog({
   userId,
   onCreated,
   initialProtocol,
+  customProtocolId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   userId: string;
   onCreated: (id: string) => void;
   initialProtocol?: string;
+  customProtocolId?: string;
 }) {
   const { data: profile } = useProfile(userId);
   const [name, setName] = useState("");
@@ -55,7 +58,8 @@ export function CreateExtractionDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName("");
+    const custom = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
+    setName(custom ? custom.name : "");
     setProtocolId(initialProtocol ?? "medication_list");
     setCustomInstruction("");
     setLinkCase(false);
@@ -67,7 +71,11 @@ export function CreateExtractionDialog({
       .order("updated_at", { ascending: false })
       .limit(50)
       .then(({ data }) => setCases(data ?? []));
-  }, [open, initialProtocol]);
+  }, [open, initialProtocol, customProtocolId]);
+
+  const customProto = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
+  const customColumns = customProto?.extractionColumns ?? [];
+
 
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -135,6 +143,18 @@ export function CreateExtractionDialog({
     setBusy(true);
     const proto = getProtocol(protocolId);
 
+    // If we're running a custom protocol with column definitions, use those.
+    const effectiveColumns: ProtocolColumn[] =
+      customColumns.length > 0
+        ? customColumns.map((c) => ({
+            key: c.id,
+            label: c.title,
+            format: c.format,
+            prompt: c.prompt,
+          }))
+        : (proto.columns as ProtocolColumn[]);
+    const effectiveProtocolName = customProto?.name ?? proto.name;
+
     // Insert as processing
     const { data: inserted, error: insertErr } = await supabase
       .from("extractions")
@@ -145,7 +165,7 @@ export function CreateExtractionDialog({
         case_id: linkCase && caseId ? caseId : null,
         source_documents: docs.map((d) => ({ name: d.name })),
         status: "processing",
-        columns: proto.columns as unknown as never,
+        columns: effectiveColumns as unknown as never,
         rows: [],
       })
       .select()
@@ -159,9 +179,9 @@ export function CreateExtractionDialog({
       const result = await runExtraction({
         apiKey,
         modelId,
-        protocolName: proto.name,
-        columns: proto.columns as unknown as never,
-        customInstruction: protocolId === "custom" ? customInstruction : undefined,
+        protocolName: effectiveProtocolName,
+        columns: effectiveColumns,
+        customInstruction: protocolId === "custom" && customColumns.length === 0 ? customInstruction : undefined,
         documents: usable,
       });
       await supabase
