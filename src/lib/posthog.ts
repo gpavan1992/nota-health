@@ -1,16 +1,20 @@
 import posthog from "posthog-js";
 
+const POSTHOG_KEY =
+  (import.meta.env.VITE_POSTHOG_KEY as string | undefined) ??
+  "phc_kFEJSG5caeMn3o6MtGokokdxSLNv7BJJekdpPUL2d7G7";
+const POSTHOG_HOST =
+  (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
+  "https://us.i.posthog.com";
+
 let initialized = false;
 
 export function initPostHog() {
   if (initialized || typeof window === "undefined") return;
-  const key = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
-  if (!key) return;
-  const host =
-    (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ||
-    "https://us.i.posthog.com";
-  posthog.init(key, {
-    api_host: host,
+  if (!POSTHOG_KEY) return;
+  posthog.init(POSTHOG_KEY, {
+    api_host: POSTHOG_HOST,
+
     person_profiles: "identified_only",
     capture_pageview: false, // we capture manually on route change
     capture_pageleave: true,
