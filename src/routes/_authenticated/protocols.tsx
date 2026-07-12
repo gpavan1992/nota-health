@@ -236,7 +236,7 @@ function ProtocolsPage() {
         <div className="flex items-center gap-2">
           {selected.size > 0 && (
             <>
-              <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+              <span className="whitespace-nowrap text-xs text-muted-foreground">{selected.size} selected</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
