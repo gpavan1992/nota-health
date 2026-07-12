@@ -344,12 +344,14 @@ function TypeBadge({ type }: { type: ProtocolType }) {
 
 function CreateCustomProtocolDialog({
   open,
+  initial,
   onOpenChange,
-  onCreated,
+  onSaved,
 }: {
   open: boolean;
+  initial?: CustomProtocol | null;
   onOpenChange: (o: boolean) => void;
-  onCreated: () => void;
+  onSaved: (mode: "create" | "edit") => void;
 }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<ProtocolType>("assistant");
@@ -359,12 +361,12 @@ function CreateCustomProtocolDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName("");
-    setType("assistant");
-    setClinicalArea("");
-    setDescription("");
-    setSeedPrompt("");
-  }, [open]);
+    setName(initial?.name ?? "");
+    setType(initial?.type ?? "assistant");
+    setClinicalArea(initial?.clinicalArea ?? "");
+    setDescription(initial?.description ?? "");
+    setSeedPrompt(initial?.seedPrompt ?? "");
+  }, [open, initial]);
 
   function handleSave() {
     if (!name.trim()) {
@@ -375,7 +377,7 @@ function CreateCustomProtocolDialog({
       toast.error("Add a starter prompt for the assistant");
       return;
     }
-    saveCustomProtocol({
+    const payload = {
       name: name.trim(),
       type,
       clinicalArea: clinicalArea.trim() || "General",
@@ -383,20 +385,30 @@ function CreateCustomProtocolDialog({
       seedPrompt: seedPrompt.trim() || undefined,
       // Custom extraction protocols fall back to "start from scratch" in Extract.
       extractionProtocolId: type === "extraction" ? "custom" : undefined,
-    });
-    onOpenChange(false);
-    onCreated();
+    };
+    if (initial) {
+      updateCustomProtocol(initial.id, payload);
+      onOpenChange(false);
+      onSaved("edit");
+    } else {
+      saveCustomProtocol(payload);
+      onOpenChange(false);
+      onSaved("create");
+    }
   }
+
+  const isEdit = !!initial;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create custom protocol</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit custom protocol" : "Create custom protocol"}</DialogTitle>
           <DialogDescription>
             Save a reusable workflow. Choose Assistant to pre-seed a chat, or Extraction to route into a structured table.
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label htmlFor="cp-name">Name</Label>
