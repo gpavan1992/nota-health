@@ -126,7 +126,7 @@ No commercial dependencies. No API keys required for clinical tools.
 
 ### Option 1 — Use the Cloud Version
 
-Go to **[nota-health.lovable.app](https://nota-health.lovable.app)**
+Go to **[https://nota-health-hub-ai.lovable.app/](https://nota-health-hub-ai.lovable.app/)**
 
 Sign up, add your own AI API key in Settings, and start uploading documents.
 No installation required. Your documents never leave your Supabase instance.
