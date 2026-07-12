@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,7 +12,28 @@ import {
   Pencil,
   Power,
   ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Loader2,
+  X,
+  HelpCircle,
+  Upload,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
@@ -45,7 +66,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/use-profile";
+import { callProviderText, keyForModel } from "@/lib/ai-text";
+import { parseMarkdownColumns, MARKDOWN_FORMAT_EXAMPLE } from "@/lib/markdown-schema";
 import {
   BUILT_IN_PROTOCOLS,
   loadCustomProtocols,
@@ -55,9 +85,15 @@ import {
   loadDeactivatedIds,
   deactivateBuiltIn,
   activateBuiltIn,
+  COLUMN_FORMAT_OPTIONS,
+  EXTRACTION_TEMPLATES,
+  formatLabel,
+  newColumnId,
   type ClinicalProtocol,
   type CustomProtocol,
   type ProtocolType,
+  type ExtractionColumnDef,
+  type ColumnFormat,
 } from "@/lib/clinical-protocols";
 
 
