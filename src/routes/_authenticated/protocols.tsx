@@ -11,6 +11,7 @@ import {
   Play,
   Pencil,
   Power,
+  ChevronDown,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +78,7 @@ function ProtocolsPage() {
   const [deactivatedIds, setDeactivatedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<CustomProtocol | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setCustoms(loadCustomProtocols());
@@ -160,6 +163,53 @@ function ProtocolsPage() {
     if (record) setEditing(record);
   }
 
+  function toggleRow(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  const visibleIds = rows.map((r) => r.id);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const someSelected = visibleIds.some((id) => selected.has(id));
+
+  function toggleAll(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) visibleIds.forEach((id) => next.add(id));
+      else visibleIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  }
+
+  const selectedRows = rows.filter((r) => selected.has(r.id));
+  const selBuiltInActive = selectedRows.filter((r) => r.source === "Built-in" && !r.deactivated);
+  const selBuiltInInactive = selectedRows.filter((r) => r.source === "Built-in" && r.deactivated);
+  const selCustom = selectedRows.filter((r) => r.source === "Custom");
+
+  function bulkDeactivate() {
+    selBuiltInActive.forEach((r) => deactivateBuiltIn(r.id));
+    setDeactivatedIds(loadDeactivatedIds());
+    setSelected(new Set());
+    toast.success(`Deactivated ${selBuiltInActive.length} protocol(s)`);
+  }
+  function bulkActivate() {
+    selBuiltInInactive.forEach((r) => activateBuiltIn(r.id));
+    setDeactivatedIds(loadDeactivatedIds());
+    setSelected(new Set());
+    toast.success(`Activated ${selBuiltInInactive.length} protocol(s)`);
+  }
+  function bulkDelete() {
+    selCustom.forEach((r) => deleteCustomProtocol(r.id));
+    refreshCustoms();
+    setSelected(new Set());
+    toast.success(`Deleted ${selCustom.length} protocol(s)`);
+  }
+
+
 
   return (
     <AppShell user={user}>
@@ -183,13 +233,52 @@ function ProtocolsPage() {
             <TabsTrigger value="custom">Custom</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search protocols…"
-          className="max-w-xs"
-        />
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <>
+              <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Actions
+                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selBuiltInActive.length > 0 && (
+                    <DropdownMenuItem onClick={bulkDeactivate}>
+                      <Power className="mr-2 h-4 w-4" />
+                      Deactivate ({selBuiltInActive.length})
+                    </DropdownMenuItem>
+                  )}
+                  {selBuiltInInactive.length > 0 && (
+                    <DropdownMenuItem onClick={bulkActivate}>
+                      <Power className="mr-2 h-4 w-4" />
+                      Activate ({selBuiltInInactive.length})
+                    </DropdownMenuItem>
+                  )}
+                  {selCustom.length > 0 && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={bulkDelete}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete ({selCustom.length})
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search protocols…"
+            className="max-w-xs"
+          />
+        </div>
       </div>
+
 
       <Card className="mt-4">
         <CardContent className="p-0">
@@ -211,6 +300,13 @@ function ProtocolsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleAll(!!v)}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium">Protocol Name</th>
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Clinical Area</th>
@@ -225,6 +321,14 @@ function ProtocolsPage() {
                     className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : "cursor-pointer"}`}
                     onClick={() => void runProtocol(p)}
                   >
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(p.id)}
+                        onCheckedChange={(v) => toggleRow(p.id, !!v)}
+                        aria-label={`Select ${p.name}`}
+                      />
+                    </td>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{p.name}</span>
