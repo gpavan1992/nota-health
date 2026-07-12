@@ -10,9 +10,10 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/gpavan1992/nota-health)
 [![Built with Supabase](https://img.shields.io/badge/Built%20with-Supabase-3ECF8E)](https://supabase.com)
+[![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4)](https://lovable.dev)
 [![Clinical APIs](https://img.shields.io/badge/Clinical%20APIs-6%20integrations-teal)](https://github.com/gpavan1992/nota-health)
 
-[**Live Demo**](https://nota-health.lovable.app) · [**Report a Bug**](https://github.com/gpavan1992/nota-health/issues) · [**Request a Feature**](https://github.com/gpavan1992/nota-health/issues)
+[**Live Demo**](https://nota-health-hub-ai.lovable.app/) · [**Report a Bug**](https://github.com/gpavan1992/nota-health) · [**Request a Feature**](https://github.com/gpavan1992/nota-health)
 
 </div>
 
@@ -336,7 +337,7 @@ This means:
 ## Built By
 
 **Pavan Galiveeti** — Lead PM building AI products for enterprise teams.
-
+Built with [Claude Code](https://claude.com/claude-code) as AI pair programmer.
 Building in public. All feedback welcome.
 
 - LinkedIn: [linkedin.com/in/pavangaliveeti](https://linkedin.com/in/pavangaliveeti)  
