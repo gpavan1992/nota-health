@@ -132,6 +132,36 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const pathname = router.state.location.pathname;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { initPostHog, identifyUser, resetPostHog } = await import(
+        "@/lib/posthog"
+      );
+      if (cancelled) return;
+      initPostHog();
+      const { data } = await supabase.auth.getUser();
+      if (data.user) identifyUser(data.user.id, { email: data.user.email });
+
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          identifyUser(session.user.id, { email: session.user.email });
+        } else if (event === "SIGNED_OUT") {
+          resetPostHog();
+        }
+      });
+      (window as unknown as { __phSub?: { unsubscribe: () => void } }).__phSub =
+        sub.subscription;
+    })();
+    return () => {
+      cancelled = true;
+      (
+        window as unknown as { __phSub?: { unsubscribe: () => void } }
+      ).__phSub?.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -146,6 +176,13 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    import("@/lib/posthog").then(({ capturePageview }) => {
+      capturePageview(window.location.href);
+    });
+  }, [pathname]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
@@ -153,3 +190,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
