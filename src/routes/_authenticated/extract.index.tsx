@@ -176,10 +176,14 @@ function ExtractList() {
         open={createOpen}
         onOpenChange={(o) => {
           setCreateOpen(o);
-          if (!o) setInitialProtocol(undefined);
+          if (!o) {
+            setInitialProtocol(undefined);
+            setInitialCustomId(undefined);
+          }
         }}
         userId={user.id}
         initialProtocol={initialProtocol}
+        customProtocolId={initialCustomId}
         onCreated={(id: string) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
       />
 
