@@ -222,11 +222,18 @@ function ProtocolsPage() {
                 {rows.map((p) => (
                   <tr
                     key={p.id}
-                    className="cursor-pointer hover:bg-muted/30"
+                    className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : "cursor-pointer"}`}
                     onClick={() => void runProtocol(p)}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-foreground">{p.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{p.name}</span>
+                        {p.deactivated && (
+                          <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                            Inactive
+                          </Badge>
+                        )}
+                      </div>
                       <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                         {p.description}
                       </div>
@@ -253,28 +260,40 @@ function ProtocolsPage() {
                           variant="outline"
                           className="h-7 text-xs"
                           onClick={() => void runProtocol(p)}
+                          disabled={p.deactivated}
                         >
                           <Play className="mr-1 h-3 w-3" />
                           Use
                         </Button>
-                        {p.source === "Custom" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteCustom(p.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {p.source === "Custom" ? (
+                              <>
+                                <DropdownMenuItem onClick={() => handleEditCustom(p)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteCustom(p.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleToggleActive(p)}>
+                                <Power className="mr-2 h-4 w-4" />
+                                {p.deactivated ? "Activate" : "Deactivate"}
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -286,13 +305,22 @@ function ProtocolsPage() {
       </Card>
 
       <CreateCustomProtocolDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={() => {
+        open={createOpen || editing !== null}
+        initial={editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCreateOpen(false);
+            setEditing(null);
+          } else if (!editing) {
+            setCreateOpen(true);
+          }
+        }}
+        onSaved={(mode) => {
           refreshCustoms();
-          toast.success("Custom protocol saved");
+          toast.success(mode === "edit" ? "Protocol updated" : "Custom protocol saved");
         }}
       />
+
     </AppShell>
   );
 }
