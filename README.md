@@ -147,12 +147,12 @@ infrastructure.
 
 # 2. Create a Supabase project at supabase.com
 
-# 3. Deploy on Lovable
+# 3. Deploy to any platform that supports Vite/React apps
+#    (Vercel, Netlify, Railway, Lovable, Cloudflare Pages, or your own server)
 #    - Import the forked repo
 #    - Connect your Supabase project
-#    - Set environment variables
+#    - Set the environment variables below
 
-# 4. Or deploy on any platform that supports React
 #    Set these environment variables:
 #    VITE_SUPABASE_URL=your-supabase-url
 #    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
