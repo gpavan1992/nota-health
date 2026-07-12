@@ -156,7 +156,14 @@ function ProtocolsPage() {
     if (p.deactivated) return;
     if (p.type === "extraction") {
       const target = p.extractionProtocolId ?? "custom";
-      navigate({ to: "/extract", search: { new: true, protocol: target } });
+      navigate({
+        to: "/extract",
+        search: {
+          new: true,
+          protocol: target,
+          ...(p.source === "Custom" ? { customProtocolId: p.id } : {}),
+        },
+      });
       return;
     }
     // Assistant protocol — create a new thread and seed the composer.
