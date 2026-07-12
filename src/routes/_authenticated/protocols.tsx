@@ -454,6 +454,7 @@ function ProtocolsPage() {
       <CreateCustomProtocolDialog
         open={createOpen || editing !== null}
         initial={editing}
+        userId={user.id}
         onOpenChange={(o) => {
           if (!o) {
             setCreateOpen(false);
