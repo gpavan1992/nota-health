@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_authenticated/protocols")({
   component: ProtocolsPage,
 });
 
-type Row = ClinicalProtocol & { source: "Built-in" | "Custom" };
+type Row = ClinicalProtocol & { source: "Built-in" | "Custom"; deactivated: boolean };
 
 function ProtocolsPage() {
   const { user } = Route.useRouteContext();
@@ -73,10 +73,13 @@ function ProtocolsPage() {
   const [tab, setTab] = useState<"all" | "built-in" | "custom">("all");
   const [search, setSearch] = useState("");
   const [customs, setCustoms] = useState<CustomProtocol[]>([]);
+  const [deactivatedIds, setDeactivatedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<CustomProtocol | null>(null);
 
   useEffect(() => {
     setCustoms(loadCustomProtocols());
+    setDeactivatedIds(loadDeactivatedIds());
   }, []);
 
   function refreshCustoms() {
@@ -84,8 +87,17 @@ function ProtocolsPage() {
   }
 
   const rows: Row[] = useMemo(() => {
-    const builtIn: Row[] = BUILT_IN_PROTOCOLS.map((p) => ({ ...p, source: "Built-in" }));
-    const custom: Row[] = customs.map((p) => ({ ...p, source: "Custom" }));
+    const deactSet = new Set(deactivatedIds);
+    const builtIn: Row[] = BUILT_IN_PROTOCOLS.map((p) => ({
+      ...p,
+      source: "Built-in",
+      deactivated: deactSet.has(p.id),
+    }));
+    const custom: Row[] = customs.map((p) => ({
+      ...p,
+      source: "Custom",
+      deactivated: false,
+    }));
     let list: Row[] = [...builtIn, ...custom];
     if (tab === "built-in") list = builtIn;
     if (tab === "custom") list = custom;
@@ -99,9 +111,10 @@ function ProtocolsPage() {
       );
     }
     return list;
-  }, [customs, tab, search]);
+  }, [customs, deactivatedIds, tab, search]);
 
   async function runProtocol(p: Row) {
+    if (p.deactivated) return;
     if (p.type === "extraction") {
       const target = p.extractionProtocolId ?? "custom";
       navigate({ to: "/extract", search: { new: true, protocol: target } });
@@ -130,6 +143,23 @@ function ProtocolsPage() {
     refreshCustoms();
     toast.success("Custom protocol deleted");
   }
+
+  function handleToggleActive(p: Row) {
+    if (p.deactivated) {
+      activateBuiltIn(p.id);
+      toast.success("Protocol activated");
+    } else {
+      deactivateBuiltIn(p.id);
+      toast.success("Protocol deactivated");
+    }
+    setDeactivatedIds(loadDeactivatedIds());
+  }
+
+  function handleEditCustom(p: Row) {
+    const record = customs.find((c) => c.id === p.id);
+    if (record) setEditing(record);
+  }
+
 
   return (
     <AppShell user={user}>
