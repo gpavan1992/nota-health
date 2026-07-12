@@ -11,7 +11,6 @@ import {
   Play,
   Pencil,
   Power,
-  Power,
   ChevronDown,
 } from "lucide-react";
 
