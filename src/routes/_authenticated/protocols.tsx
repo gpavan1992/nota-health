@@ -300,6 +300,13 @@ function ProtocolsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleAll(!!v)}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium">Protocol Name</th>
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Clinical Area</th>
@@ -314,6 +321,14 @@ function ProtocolsPage() {
                     className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : "cursor-pointer"}`}
                     onClick={() => void runProtocol(p)}
                   >
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(p.id)}
+                        onCheckedChange={(v) => toggleRow(p.id, !!v)}
+                        aria-label={`Select ${p.name}`}
+                      />
+                    </td>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{p.name}</span>
