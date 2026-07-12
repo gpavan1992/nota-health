@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedProtocolsRouteImport } from './routes/_authenticated/protocols'
 import { Route as AuthenticatedExtractRouteImport } from './routes/_authenticated/extract'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCasesRouteImport } from './routes/_authenticated/cases'
@@ -71,6 +72,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProtocolsRoute = AuthenticatedProtocolsRouteImport.update({
+  id: '/protocols',
+  path: '/protocols',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedExtractRoute = AuthenticatedExtractRouteImport.update({
   id: '/extract',
   path: '/extract',
@@ -93,9 +99,9 @@ const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
 } as any)
 const AuthenticatedProtocolsIndexRoute =
   AuthenticatedProtocolsIndexRouteImport.update({
-    id: '/protocols/',
-    path: '/protocols/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedProtocolsRoute,
   } as any)
 const AuthenticatedExtractIndexRoute =
   AuthenticatedExtractIndexRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/cases': typeof AuthenticatedCasesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/extract': typeof AuthenticatedExtractRouteWithChildren
+  '/protocols': typeof AuthenticatedProtocolsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
@@ -245,6 +252,7 @@ export interface FileRoutesById {
   '/_authenticated/cases': typeof AuthenticatedCasesRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/extract': typeof AuthenticatedExtractRouteWithChildren
+  '/_authenticated/protocols': typeof AuthenticatedProtocolsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
@@ -275,6 +283,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/dashboard'
     | '/extract'
+    | '/protocols'
     | '/settings'
     | '/assistant/$threadId'
     | '/cases/$caseId'
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cases'
     | '/_authenticated/dashboard'
     | '/_authenticated/extract'
+    | '/_authenticated/protocols'
     | '/_authenticated/settings'
     | '/_authenticated/assistant/$threadId'
     | '/_authenticated/cases/$caseId'
@@ -413,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/protocols': {
+      id: '/_authenticated/protocols'
+      path: '/protocols'
+      fullPath: '/protocols'
+      preLoaderRoute: typeof AuthenticatedProtocolsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/extract': {
       id: '/_authenticated/extract'
       path: '/extract'
@@ -443,10 +460,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/protocols/': {
       id: '/_authenticated/protocols/'
-      path: '/protocols'
+      path: '/'
       fullPath: '/protocols/'
       preLoaderRoute: typeof AuthenticatedProtocolsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedProtocolsRoute
     }
     '/_authenticated/extract/': {
       id: '/_authenticated/extract/'
@@ -598,17 +615,31 @@ const AuthenticatedExtractRouteChildren: AuthenticatedExtractRouteChildren = {
 const AuthenticatedExtractRouteWithChildren =
   AuthenticatedExtractRoute._addFileChildren(AuthenticatedExtractRouteChildren)
 
+interface AuthenticatedProtocolsRouteChildren {
+  AuthenticatedProtocolsIndexRoute: typeof AuthenticatedProtocolsIndexRoute
+}
+
+const AuthenticatedProtocolsRouteChildren: AuthenticatedProtocolsRouteChildren =
+  {
+    AuthenticatedProtocolsIndexRoute: AuthenticatedProtocolsIndexRoute,
+  }
+
+const AuthenticatedProtocolsRouteWithChildren =
+  AuthenticatedProtocolsRoute._addFileChildren(
+    AuthenticatedProtocolsRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRouteWithChildren
   AuthenticatedCasesRoute: typeof AuthenticatedCasesRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExtractRoute: typeof AuthenticatedExtractRouteWithChildren
+  AuthenticatedProtocolsRoute: typeof AuthenticatedProtocolsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedToolsDrugRoute: typeof AuthenticatedToolsDrugRoute
   AuthenticatedToolsIcdRoute: typeof AuthenticatedToolsIcdRoute
   AuthenticatedToolsProviderRoute: typeof AuthenticatedToolsProviderRoute
   AuthenticatedToolsPubmedRoute: typeof AuthenticatedToolsPubmedRoute
-  AuthenticatedProtocolsIndexRoute: typeof AuthenticatedProtocolsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -616,12 +647,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCasesRoute: AuthenticatedCasesRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExtractRoute: AuthenticatedExtractRouteWithChildren,
+  AuthenticatedProtocolsRoute: AuthenticatedProtocolsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedToolsDrugRoute: AuthenticatedToolsDrugRoute,
   AuthenticatedToolsIcdRoute: AuthenticatedToolsIcdRoute,
   AuthenticatedToolsProviderRoute: AuthenticatedToolsProviderRoute,
   AuthenticatedToolsPubmedRoute: AuthenticatedToolsPubmedRoute,
-  AuthenticatedProtocolsIndexRoute: AuthenticatedProtocolsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
