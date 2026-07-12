@@ -17,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/extract/")({
   validateSearch: (search: Record<string, unknown>) => ({
     new: search.new === "1" || search.new === true ? true : undefined,
     protocol: typeof search.protocol === "string" ? (search.protocol as string) : undefined,
+    customProtocolId:
+      typeof search.customProtocolId === "string" ? (search.customProtocolId as string) : undefined,
   }),
   component: ExtractList,
 });
@@ -29,15 +31,17 @@ function ExtractList() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [initialProtocol, setInitialProtocol] = useState<string | undefined>(undefined);
+  const [initialCustomId, setInitialCustomId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (searchParams.new) {
       setInitialProtocol(searchParams.protocol);
+      setInitialCustomId(searchParams.customProtocolId);
       setCreateOpen(true);
       navigate({ to: "/extract", search: {}, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.new, searchParams.protocol]);
+  }, [searchParams.new, searchParams.protocol, searchParams.customProtocolId]);
 
 
 
