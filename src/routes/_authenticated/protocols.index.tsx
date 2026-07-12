@@ -97,7 +97,7 @@ import {
 } from "@/lib/clinical-protocols";
 
 
-export const Route = createFileRoute("/_authenticated/protocols")({
+export const Route = createFileRoute("/_authenticated/protocols/")({
   head: () => ({ meta: [{ title: "Protocols — Nota Health" }] }),
   component: ProtocolsPage,
 });
