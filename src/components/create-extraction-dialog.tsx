@@ -58,7 +58,8 @@ export function CreateExtractionDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName("");
+    const custom = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
+    setName(custom ? custom.name : "");
     setProtocolId(initialProtocol ?? "medication_list");
     setCustomInstruction("");
     setLinkCase(false);
@@ -70,7 +71,11 @@ export function CreateExtractionDialog({
       .order("updated_at", { ascending: false })
       .limit(50)
       .then(({ data }) => setCases(data ?? []));
-  }, [open, initialProtocol]);
+  }, [open, initialProtocol, customProtocolId]);
+
+  const customProto = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
+  const customColumns = customProto?.extractionColumns ?? [];
+
 
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
