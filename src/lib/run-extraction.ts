@@ -36,6 +36,8 @@ export async function runExtraction(p: ExtractParams): Promise<ExtractResult> {
     .map((d) => `--- Document: ${d.name} ---\n${d.text.slice(0, 40000)}`)
     .join("\n\n");
 
+  const hasColumnPrompts = p.columns.some((c) => c.prompt && c.prompt.trim().length > 0);
+
   const columnSpec = p.columns.length
     ? `Return a JSON object of the form:
 {
@@ -43,7 +45,18 @@ export async function runExtraction(p: ExtractParams): Promise<ExtractResult> {
   "rows": [ { "<key>": string, ... } ]
 }
 Use exactly these columns (keep keys and labels as given):
-${p.columns.map((c) => `- ${c.key} (${c.label})${c.description ? " — " + c.description : ""}`).join("\n")}`
+${p.columns
+  .map((c) => {
+    const base = `- ${c.key} (${c.label})${c.description ? " — " + c.description : ""}`;
+    const perColPrompt = c.prompt && c.prompt.trim() ? `\n    Extraction instructions: ${c.prompt.trim()}` : "";
+    const fmt = c.format ? `\n    Format: ${c.format}` : "";
+    return base + fmt + perColPrompt;
+  })
+  .join("\n")}${
+        hasColumnPrompts
+          ? "\n\nFollow each column's Extraction instructions precisely when filling that column's cells."
+          : ""
+      }`
     : `Design a small table (3–8 columns) that best captures what the user asked for. Return:
 {
   "columns": [ { "key": string, "label": string } ],
@@ -81,10 +94,15 @@ ${docsBlock || "(no text documents attached)"}${imageList}`;
   if (!parsed || !Array.isArray(parsed.rows) || !Array.isArray(parsed.columns)) {
     throw new Error("AI did not return valid extraction JSON.");
   }
-  const columns: ProtocolColumn[] = (parsed.columns as Array<{ key: string; label: string }>).map((c) => ({
-    key: String(c.key),
-    label: String(c.label),
-  }));
+  // If caller supplied a fixed column schema, keep it verbatim (preserves format
+  // metadata used by the results table); otherwise fall back to what the AI
+  // returned (dynamic "start from scratch" extractions).
+  const columns: ProtocolColumn[] = p.columns.length
+    ? p.columns
+    : (parsed.columns as Array<{ key: string; label: string }>).map((c) => ({
+        key: String(c.key),
+        label: String(c.label),
+      }));
   const rows: Record<string, string>[] = (parsed.rows as Array<Record<string, unknown>>).map((r) => {
     const out: Record<string, string> = {};
     for (const col of columns) {

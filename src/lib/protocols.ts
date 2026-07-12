@@ -1,7 +1,11 @@
+import type { ColumnFormat } from "./clinical-protocols";
+
 export interface ProtocolColumn {
   key: string;
   label: string;
   description?: string;
+  format?: ColumnFormat;
+  prompt?: string;
 }
 
 export interface Protocol {

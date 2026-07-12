@@ -1,7 +1,7 @@
 <div align="center">
 
-<img src="https://nota-health.lovable.app/logo.png" alt="Nota Health Logo" width="80" height="80" />
-
+<img src="./screenshots/logo.png" alt="Nota Health Logo" width="80" height="80" />
+<img src="./screenshots/hero-landing.png" alt="Nota Health — Clinical documentation is broken. Nota Health is the layer that fixes it." width="100%" />
 # Nota Health
 
 ### Open-source AI platform for clinical documentation intelligence
@@ -105,23 +105,22 @@ No commercial dependencies. No API keys required for clinical tools.
 
 <table>
 <tr>
-<td><img src="docs/screenshots/assistant.png" alt="Clinical Assistant" /></td>
-<td><img src="docs/screenshots/extract.png" alt="Clinical Extract" /></td>
+<td><img src="./screenshots/clinical-assistant.png" alt="Clinical Assistant" /></td>
+<td><img src="./screenshots/clinical-extract.png" alt="Clinical Extract" /></td>
 </tr>
 <tr>
 <td><em>Clinical Assistant — chat with any medical document</em></td>
 <td><em>Clinical Extract — structured data from clinical documents</em></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/drug.png" alt="Drug Database" /></td>
-<td><img src="docs/screenshots/provider.png" alt="Provider Verification" /></td>
+<td><img src="./screenshots/drug-database.png" alt="Drug Database" /></td>
+<td><img src="./screenshots/provider-verification.png" alt="Provider Verification" /></td>
 </tr>
 <tr>
 <td><em>Drug Database — real FDA data, interaction checking</em></td>
 <td><em>Provider Verification — live NPI Registry lookup</em></td>
 </tr>
 </table>
-
 ---
 
 ## Quick Start
@@ -283,7 +282,6 @@ clinical documentation workflows:
 
 **v2.0 — Future**
 - [ ] EHR webhook integration
-- [ ] India module (TPA prior auth, PM-JAY, NABH)
 - [ ] SOC 2 Type II certification
 - [ ] On-premise Docker deployment
 

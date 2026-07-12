@@ -297,7 +297,9 @@ function ClinicalTable({
                     className="border-b border-border/40 px-4 py-3.5 align-top text-[13px] leading-relaxed text-foreground"
                   >
                     {raw ? (
-                      enumCols[c.key] ? (
+                      c.format ? (
+                        <FormattedCell value={raw} format={c.format} />
+                      ) : enumCols[c.key] ? (
                         <EnumPill value={raw} />
                       ) : (
                         <span className="text-foreground/90">{raw}</span>
@@ -314,6 +316,89 @@ function ClinicalTable({
       </table>
     </div>
   );
+}
+
+function FormattedCell({ value, format }: { value: string; format: NonNullable<ProtocolColumn["format"]> }) {
+  const v = value.trim();
+  if (format === "clinical_value") {
+    const m = v.match(/\b(HIGH|LOW|NORMAL|CRITICAL)\b/i);
+    const flag = m?.[1]?.toUpperCase();
+    const base = v.replace(/\b(HIGH|LOW|NORMAL|CRITICAL)\b/i, "").trim();
+    const tint =
+      flag === "HIGH"
+        ? "bg-destructive/15 text-destructive"
+        : flag === "LOW"
+          ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+          : flag === "NORMAL"
+            ? "bg-success/15 text-success"
+            : "bg-warning/15 text-warning";
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className="font-medium">{base || v}</span>
+        {flag && (
+          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${tint}`}>
+            {flag}
+          </span>
+        )}
+      </span>
+    );
+  }
+  if (format === "icd10") {
+    const m = v.match(/^([A-TV-Z]\d{2}(?:\.\d{1,4})?)\s*[—:-]?\s*(.*)$/i);
+    if (m) {
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">{m[1].toUpperCase()}</span>
+          {m[2] && <span className="text-muted-foreground">{m[2]}</span>}
+        </span>
+      );
+    }
+    return <span className="font-mono text-[12px]">{v}</span>;
+  }
+  if (format === "yes_no") {
+    const norm = v.toLowerCase();
+    const kind = norm.startsWith("y")
+      ? { label: "Yes", cls: "bg-success/15 text-success" }
+      : norm.startsWith("n") && !norm.includes("not")
+        ? { label: "No", cls: "bg-destructive/15 text-destructive" }
+        : { label: "Not Mentioned", cls: "bg-muted text-muted-foreground" };
+    return (
+      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${kind.cls}`}>
+        {kind.label}
+      </span>
+    );
+  }
+  if (format === "medication_entry") {
+    const parts = v.split("|").map((s) => s.trim());
+    if (parts.length >= 2) {
+      const labels = ["Drug", "Dose", "Frequency", "Route"];
+      return (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
+          {parts.map((p, i) => (
+            <span key={i}>
+              <span className="text-muted-foreground">{labels[i] ?? "•"}: </span>
+              <span className="font-medium">{p}</span>
+            </span>
+          ))}
+        </div>
+      );
+    }
+    return <span>{v}</span>;
+  }
+  if (format === "bulleted_list") {
+    const items = v.split(/\n|;|•/).map((s) => s.trim()).filter(Boolean);
+    if (items.length > 1) {
+      return (
+        <ul className="ml-4 list-disc space-y-0.5">
+          {items.map((it, i) => (
+            <li key={i}>{it}</li>
+          ))}
+        </ul>
+      );
+    }
+    return <span>{v}</span>;
+  }
+  return <span>{v}</span>;
 }
 
 function ClinicalFieldValueTable({ rows }: { rows: Record<string, string>[] }) {
