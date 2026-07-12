@@ -1,7 +1,9 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Plus,
   Sparkles,
@@ -18,6 +20,10 @@ import {
   X,
   HelpCircle,
   Upload,
+  Search,
+  Star,
+  User as UserIcon,
+  ExternalLink,
 } from "lucide-react";
 import {
   DndContext,
@@ -76,6 +82,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { callProviderText, keyForModel } from "@/lib/ai-text";
 import { parseMarkdownColumns, MARKDOWN_FORMAT_EXAMPLE } from "@/lib/markdown-schema";
+import { FORMAT_ICONS, areaColor } from "@/lib/protocol-icons";
 import {
   BUILT_IN_PROTOCOLS,
   loadCustomProtocols,
@@ -83,8 +90,6 @@ import {
   updateCustomProtocol,
   deleteCustomProtocol,
   loadDeactivatedIds,
-  deactivateBuiltIn,
-  activateBuiltIn,
   COLUMN_FORMAT_OPTIONS,
   EXTRACTION_TEMPLATES,
   formatLabel,
@@ -108,13 +113,13 @@ function ProtocolsPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"all" | "built-in" | "custom">("all");
+  const [tab, setTab] = useState<"all" | "user" | "system">("all");
   const [search, setSearch] = useState("");
   const [customs, setCustoms] = useState<CustomProtocol[]>([]);
   const [deactivatedIds, setDeactivatedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<CustomProtocol | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
     setCustoms(loadCustomProtocols());
@@ -125,7 +130,7 @@ function ProtocolsPage() {
     setCustoms(loadCustomProtocols());
   }
 
-  const rows: Row[] = useMemo(() => {
+  const allRows: Row[] = useMemo(() => {
     const deactSet = new Set(deactivatedIds);
     const builtIn: Row[] = BUILT_IN_PROTOCOLS.map((p) => ({
       ...p,
@@ -137,9 +142,13 @@ function ProtocolsPage() {
       source: "Custom",
       deactivated: false,
     }));
-    let list: Row[] = [...builtIn, ...custom];
-    if (tab === "built-in") list = builtIn;
-    if (tab === "custom") list = custom;
+    return [...builtIn, ...custom];
+  }, [customs, deactivatedIds]);
+
+  const rows: Row[] = useMemo(() => {
+    let list = allRows;
+    if (tab === "system") list = list.filter((p) => p.source === "Built-in");
+    if (tab === "user") list = list.filter((p) => p.source === "Custom");
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -150,7 +159,7 @@ function ProtocolsPage() {
       );
     }
     return list;
-  }, [customs, deactivatedIds, tab, search]);
+  }, [allRows, tab, search]);
 
   async function runProtocol(p: Row) {
     if (p.deactivated) return;
@@ -166,7 +175,6 @@ function ProtocolsPage() {
       });
       return;
     }
-    // Assistant protocol — create a new thread and seed the composer.
     const { data: thread, error } = await supabase
       .from("chat_threads")
       .insert({ user_id: user.id, title: p.name })
@@ -190,69 +198,25 @@ function ProtocolsPage() {
     toast.success("Custom protocol deleted");
   }
 
-  function handleToggleActive(p: Row) {
-    if (p.deactivated) {
-      activateBuiltIn(p.id);
-      toast.success("Protocol activated");
-    } else {
-      deactivateBuiltIn(p.id);
-      toast.success("Protocol deactivated");
-    }
-    setDeactivatedIds(loadDeactivatedIds());
-  }
-
   function handleEditCustom(p: Row) {
     const record = customs.find((c) => c.id === p.id);
     if (record) setEditing(record);
   }
 
-  function toggleRow(id: string, checked: boolean) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
-
-  const visibleIds = rows.map((r) => r.id);
-  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
-  const someSelected = visibleIds.some((id) => selected.has(id));
-
-  function toggleAll(checked: boolean) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (checked) visibleIds.forEach((id) => next.add(id));
-      else visibleIds.forEach((id) => next.delete(id));
-      return next;
-    });
-  }
-
-  const selectedRows = rows.filter((r) => selected.has(r.id));
-  const selBuiltInActive = selectedRows.filter((r) => r.source === "Built-in" && !r.deactivated);
-  const selBuiltInInactive = selectedRows.filter((r) => r.source === "Built-in" && r.deactivated);
-  const selCustom = selectedRows.filter((r) => r.source === "Custom");
-
-  function bulkDeactivate() {
-    selBuiltInActive.forEach((r) => deactivateBuiltIn(r.id));
-    setDeactivatedIds(loadDeactivatedIds());
-    setSelected(new Set());
-    toast.success(`Deactivated ${selBuiltInActive.length} protocol(s)`);
-  }
-  function bulkActivate() {
-    selBuiltInInactive.forEach((r) => activateBuiltIn(r.id));
-    setDeactivatedIds(loadDeactivatedIds());
-    setSelected(new Set());
-    toast.success(`Activated ${selBuiltInInactive.length} protocol(s)`);
-  }
-  function bulkDelete() {
-    selCustom.forEach((r) => deleteCustomProtocol(r.id));
+  function handleDuplicate(p: Row) {
+    const copy = {
+      name: `${p.name} (copy)`,
+      type: p.type,
+      clinicalArea: p.clinicalArea,
+      description: p.description,
+      seedPrompt: p.seedPrompt,
+      extractionProtocolId: p.extractionProtocolId,
+      extractionColumns: p.extractionColumns?.map((c) => ({ ...c, id: newColumnId() })),
+    };
+    saveCustomProtocol(copy);
     refreshCustoms();
-    setSelected(new Set());
-    toast.success(`Deleted ${selCustom.length} protocol(s)`);
+    toast.success("Protocol duplicated");
   }
-
-
 
   return (
     <AppShell user={user}>
@@ -262,63 +226,29 @@ function ProtocolsPage() {
           title="Pre-built workflows for the work you do every day."
           body="Reusable AI playbooks for prior auth review, discharge analysis, referrals, appeals, and structured extraction."
         />
-        <Button onClick={() => setCreateOpen(true)} className="mt-2 shrink-0">
-          <Plus className="mr-2 h-4 w-4" />
-          Create Custom Protocol
-        </Button>
       </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="built-in">Built-in</TabsTrigger>
-            <TabsTrigger value="custom">Custom</TabsTrigger>
+            <TabsTrigger value="user">User</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-2">
-          {selected.size > 0 && (
-            <>
-              <span className="whitespace-nowrap text-xs text-muted-foreground">{selected.size} selected</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Actions
-                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {selBuiltInActive.length > 0 && (
-                    <DropdownMenuItem onClick={bulkDeactivate}>
-                      <Power className="mr-2 h-4 w-4" />
-                      Deactivate ({selBuiltInActive.length})
-                    </DropdownMenuItem>
-                  )}
-                  {selBuiltInInactive.length > 0 && (
-                    <DropdownMenuItem onClick={bulkActivate}>
-                      <Power className="mr-2 h-4 w-4" />
-                      Activate ({selBuiltInInactive.length})
-                    </DropdownMenuItem>
-                  )}
-                  {selCustom.length > 0 && (
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={bulkDelete}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete ({selCustom.length})
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search protocols…"
-            className="max-w-xs"
-          />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search protocols…"
+              className="w-64 pl-8"
+            />
+          </div>
+          <Button size="icon" onClick={() => setCreateOpen(true)} aria-label="Create protocol">
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -343,105 +273,80 @@ function ProtocolsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="w-10 px-4 py-3">
-                    <Checkbox
-                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                      onCheckedChange={(v) => toggleAll(!!v)}
-                      aria-label="Select all"
-                    />
-                  </th>
-                  <th className="px-4 py-3 font-medium">Protocol Name</th>
+                  <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Clinical Area</th>
                   <th className="px-4 py-3 font-medium">Source</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                  <th className="w-10 px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.map((p) => (
                   <tr
                     key={p.id}
-                    className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : "cursor-pointer"}`}
-                    onClick={() => void runProtocol(p)}
+                    className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : ""}`}
                   >
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selected.has(p.id)}
-                        onCheckedChange={(v) => toggleRow(p.id, !!v)}
-                        aria-label={`Select ${p.name}`}
-                      />
-                    </td>
-
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{p.name}</span>
-                        {p.deactivated && (
-                          <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
-                            Inactive
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                        {p.description}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <TypeBadge type={p.type} />
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{p.clinicalArea}</td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant="outline"
-                        className="font-mono text-[10px] uppercase tracking-wider"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewId(p.id)}
+                        className="text-left font-medium text-foreground hover:text-primary hover:underline"
                       >
-                        {p.source}
-                      </Badge>
+                        {p.name}
+                      </button>
+                      {p.deactivated && (
+                        <Badge variant="outline" className="ml-2 font-mono text-[10px] uppercase tracking-wider">
+                          Inactive
+                        </Badge>
+                      )}
                     </td>
-                    <td
-                      className="px-4 py-3 text-right"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="inline-flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => void runProtocol(p)}
-                          disabled={p.deactivated}
-                        >
-                          <Play className="mr-1 h-3 w-3" />
-                          Use
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {p.source === "Custom" ? (
-                              <>
-                                <DropdownMenuItem onClick={() => handleEditCustom(p)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => handleDeleteCustom(p.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleToggleActive(p)}>
-                                <Power className="mr-2 h-4 w-4" />
-                                {p.deactivated ? "Activate" : "Deactivate"}
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                    <td className="px-4 py-3">
+                      <TypeCell type={p.type} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: areaColor(p.clinicalArea) }}
+                        />
+                        <span>{p.clinicalArea}</span>
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SourceCell source={p.source} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to="/protocols/$protocolId" params={{ protocolId: p.id }}>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              View Page
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void runProtocol(p)} disabled={p.deactivated}>
+                            <Play className="mr-2 h-4 w-4" />
+                            Use
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(p)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={p.source !== "Custom"}
+                            onClick={() => p.source === "Custom" && handleDeleteCustom(p.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
@@ -450,6 +355,16 @@ function ProtocolsPage() {
           )}
         </CardContent>
       </Card>
+
+      <PreviewModal
+        rows={allRows}
+        openId={previewId}
+        onOpenChange={(id) => setPreviewId(id)}
+        onUse={(p) => {
+          setPreviewId(null);
+          void runProtocol(p);
+        }}
+      />
 
       <CreateCustomProtocolDialog
         open={createOpen || editing !== null}
@@ -473,20 +388,178 @@ function ProtocolsPage() {
   );
 }
 
-function TypeBadge({ type }: { type: ProtocolType }) {
-  if (type === "assistant") {
+function TypeCell({ type }: { type: ProtocolType }) {
+  const Icon = type === "assistant" ? Sparkles : TableIcon;
+  return (
+    <div className="flex items-center gap-2 text-foreground">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span>{type === "assistant" ? "Assistant" : "Extraction"}</span>
+    </div>
+  );
+}
+
+function SourceCell({ source }: { source: "Built-in" | "Custom" }) {
+  const Icon = source === "Built-in" ? Star : UserIcon;
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <Icon className="h-3.5 w-3.5" />
+      <span>{source === "Built-in" ? "System" : "User"}</span>
+    </div>
+  );
+}
+
+function PreviewModal({
+  rows,
+  openId,
+  onOpenChange,
+  onUse,
+}: {
+  rows: Row[];
+  openId: string | null;
+  onOpenChange: (id: string | null) => void;
+  onUse: (p: Row) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (openId) setSelectedId(openId);
+  }, [openId]);
+
+  const open = openId !== null;
+  const filtered = useMemo(() => {
+    if (!q.trim()) return rows;
+    const s = q.toLowerCase();
+    return rows.filter((p) => p.name.toLowerCase().includes(s));
+  }, [q, rows]);
+  const selected = rows.find((p) => p.id === selectedId) ?? null;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onOpenChange(null)}>
+      <DialogContent className="h-[80vh] max-w-4xl gap-0 overflow-hidden p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Protocol preview</DialogTitle>
+        </DialogHeader>
+        <div className="flex h-full min-h-0">
+          {/* LEFT */}
+          <div className="flex w-[35%] min-w-0 flex-col border-r border-border">
+            <div className="border-b border-border p-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search…"
+                  className="h-8 pl-8"
+                />
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto py-1">
+              {filtered.map((p) => {
+                const Icon = p.type === "assistant" ? Sparkles : TableIcon;
+                const active = p.id === selectedId;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedId(p.id)}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+                      active ? "bg-accent text-accent-foreground" : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{p.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* RIGHT */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div className="min-w-0">
+                {selected && (
+                  <>
+                    <h2 className="truncate font-serif text-lg text-foreground">{selected.name}</h2>
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{selected.type === "assistant" ? "Assistant" : "Extraction"}</span>
+                      <span>·</span>
+                      <span>{selected.clinicalArea}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                onClick={() => onOpenChange(null)}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              {selected && <PreviewBody protocol={selected} />}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+              {selected && (
+                <>
+                  <Button variant="outline" asChild>
+                    <Link
+                      to="/protocols/$protocolId"
+                      params={{ protocolId: selected.id }}
+                      onClick={() => onOpenChange(null)}
+                    >
+                      View Page
+                    </Link>
+                  </Button>
+                  <Button onClick={() => onUse(selected)} disabled={selected.deactivated}>
+                    Use
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PreviewBody({ protocol }: { protocol: ClinicalProtocol }) {
+  if (protocol.type === "extraction") {
+    const cols = protocol.extractionColumns ?? [];
+    if (cols.length === 0) {
+      return (
+        <p className="text-sm text-muted-foreground">
+          This extraction uses a built-in schema. Open the full page to see column details.
+        </p>
+      );
+    }
     return (
-      <Badge variant="outline" className="gap-1.5 font-mono text-[10px]">
-        <Sparkles className="h-3 w-3" />
-        Assistant
-      </Badge>
+      <ul className="divide-y divide-border rounded-md border border-border">
+        {cols.map((c) => {
+          const Icon = FORMAT_ICONS[c.format] ?? FORMAT_ICONS.free_text;
+          return (
+            <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate text-foreground">{c.title}</span>
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">{formatLabel(c.format)}</span>
+            </li>
+          );
+        })}
+      </ul>
     );
   }
   return (
-    <Badge variant="outline" className="gap-1.5 font-mono text-[10px]">
-      <TableIcon className="h-3 w-3" />
-      Extraction
-    </Badge>
+    <div className="prose prose-sm max-w-none text-foreground prose-headings:font-serif prose-headings:font-medium">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {protocol.seedPrompt ?? protocol.description ?? ""}
+      </ReactMarkdown>
+    </div>
   );
 }
 
