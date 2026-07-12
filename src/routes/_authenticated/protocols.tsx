@@ -493,19 +493,26 @@ function TypeBadge({ type }: { type: ProtocolType }) {
 function CreateCustomProtocolDialog({
   open,
   initial,
+  userId,
   onOpenChange,
   onSaved,
 }: {
   open: boolean;
   initial?: CustomProtocol | null;
+  userId: string;
   onOpenChange: (o: boolean) => void;
   onSaved: (mode: "create" | "edit") => void;
 }) {
+  const { data: profile } = useProfile(userId);
   const [name, setName] = useState("");
   const [type, setType] = useState<ProtocolType>("assistant");
   const [clinicalArea, setClinicalArea] = useState("");
   const [description, setDescription] = useState("");
   const [seedPrompt, setSeedPrompt] = useState("");
+  const [columns, setColumns] = useState<ExtractionColumnDef[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -514,6 +521,9 @@ function CreateCustomProtocolDialog({
     setClinicalArea(initial?.clinicalArea ?? "");
     setDescription(initial?.description ?? "");
     setSeedPrompt(initial?.seedPrompt ?? "");
+    setColumns(initial?.extractionColumns ?? []);
+    setImportOpen(false);
+    setImportText("");
   }, [open, initial]);
 
   function handleSave() {
@@ -525,14 +535,27 @@ function CreateCustomProtocolDialog({
       toast.error("Add a starter prompt for the assistant");
       return;
     }
+    if (type === "extraction") {
+      if (columns.length === 0) {
+        toast.error("Add at least one extraction column");
+        return;
+      }
+      if (columns.some((c) => !c.title.trim())) {
+        toast.error("Every column needs a title");
+        return;
+      }
+    }
     const payload = {
       name: name.trim(),
       type,
       clinicalArea: clinicalArea.trim() || "General",
       description: description.trim() || "Custom protocol",
       seedPrompt: seedPrompt.trim() || undefined,
-      // Custom extraction protocols fall back to "start from scratch" in Extract.
       extractionProtocolId: type === "extraction" ? "custom" : undefined,
+      extractionColumns:
+        type === "extraction"
+          ? columns.map((c) => ({ ...c, title: c.title.trim(), prompt: c.prompt.trim() }))
+          : undefined,
     };
     if (initial) {
       updateCustomProtocol(initial.id, payload);
@@ -545,11 +568,72 @@ function CreateCustomProtocolDialog({
     }
   }
 
+  function addColumn() {
+    setColumns((cs) => [
+      ...cs,
+      { id: newColumnId(), title: "", format: "free_text", prompt: "" },
+    ]);
+  }
+  function updateColumn(id: string, patch: Partial<ExtractionColumnDef>) {
+    setColumns((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+  function removeColumn(id: string) {
+    setColumns((cs) => cs.filter((c) => c.id !== id));
+  }
+  function loadTemplate(templateId: string) {
+    const t = EXTRACTION_TEMPLATES.find((x) => x.id === templateId);
+    if (!t) return;
+    setColumns(
+      t.columns.map((c) => ({
+        id: newColumnId(),
+        title: c.title,
+        format: c.format,
+        prompt: "",
+      })),
+    );
+    toast.success(`${t.name} loaded`);
+  }
+
+  function handleImport() {
+    const parsed = parseMarkdownColumns(importText);
+    if (!parsed.ok) {
+      toast.error("Could not parse markdown. Check the table format and try again.");
+      return;
+    }
+    setColumns(parsed.columns);
+    toast.success(`${parsed.columns.length} columns imported successfully`);
+    setImportText("");
+    setImportOpen(false);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const text = await f.text();
+    setImportText(text);
+  }
+
+  const modelId = profile?.ai_model ?? "claude-sonnet";
+  const aiKey = keyForModel(modelId, profile);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setColumns((cs) => {
+      const from = cs.findIndex((c) => c.id === active.id);
+      const to = cs.findIndex((c) => c.id === over.id);
+      if (from === -1 || to === -1) return cs;
+      return arrayMove(cs, from, to);
+    });
+  }
+
   const isEdit = !!initial;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit custom protocol" : "Create custom protocol"}</DialogTitle>
           <DialogDescription>
@@ -614,6 +698,153 @@ function CreateCustomProtocolDialog({
               </p>
             </div>
           )}
+
+          {type === "extraction" && (
+            <div className="grid gap-3 rounded-lg border border-border bg-muted/20 p-4">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-medium text-foreground">Extraction Columns</h4>
+                  {columns.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {columns.length} column{columns.length === 1 ? "" : "s"} defined
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Define what structured data to extract from each document. Each column becomes a field in the output table.
+                </p>
+              </div>
+
+              {columns.length === 0 && (
+                <div className="grid gap-2 rounded-md border border-dashed border-border bg-background/60 p-3">
+                  <div className="text-xs font-medium text-muted-foreground">Start from a template:</div>
+                  <div className="grid gap-1.5">
+                    {EXTRACTION_TEMPLATES.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => loadTemplate(t.id)}
+                        className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-left text-sm hover:bg-accent"
+                      >
+                        <span className="font-medium text-foreground">{t.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t.columns.length} columns
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {columns.length > 0 && (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    <div className="grid gap-2">
+                      {columns.map((c) => (
+                        <ColumnCard
+                          key={c.id}
+                          column={c}
+                          modelId={modelId}
+                          apiKey={aiKey}
+                          onChange={(patch) => updateColumn(c.id, patch)}
+                          onRemove={() => removeColumn(c.id)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addColumn}
+                className="justify-center"
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add column
+              </Button>
+
+              {/* Advanced — Import from Markdown */}
+              <div className="mt-1 rounded-md border border-border bg-background/60">
+                <button
+                  type="button"
+                  onClick={() => setImportOpen((o) => !o)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <span className="flex items-center gap-1.5">
+                    {importOpen ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                    Advanced — Import schema from Markdown
+                  </span>
+                </button>
+                {importOpen && (
+                  <div className="grid gap-3 border-t border-border px-3 py-3">
+                    <div className="grid gap-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Paste markdown table</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                              >
+                                <HelpCircle className="h-3 w-3" />
+                                See expected format →
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-md">
+                              <pre className="whitespace-pre-wrap text-[10px] leading-relaxed">
+                                {MARKDOWN_FORMAT_EXAMPLE}
+                              </pre>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Textarea
+                        value={importText}
+                        onChange={(e) => setImportText(e.target.value)}
+                        placeholder={"| Column Title | Format | Prompt |\n|---|---|---|\n| Primary Diagnosis | ICD-10 Code | ... |"}
+                        className="min-h-[100px] font-mono text-xs"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".md,.txt"
+                        hidden
+                        onChange={handleImportFile}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="mr-1 h-3.5 w-3.5" />
+                        Upload .md / .txt
+                      </Button>
+                      <div className="flex-1" />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleImport}
+                        disabled={!importText.trim()}
+                      >
+                        Import Columns
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -623,5 +854,140 @@ function CreateCustomProtocolDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ColumnCard({
+  column,
+  modelId,
+  apiKey,
+  onChange,
+  onRemove,
+}: {
+  column: ExtractionColumnDef;
+  modelId: string;
+  apiKey: string | null;
+  onChange: (patch: Partial<ExtractionColumnDef>) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: column.id,
+  });
+  const [generating, setGenerating] = useState(false);
+
+  async function autoGenerate() {
+    if (!apiKey) {
+      toast.error("Add an AI key in Settings to use Auto-Generate");
+      return;
+    }
+    if (!column.title.trim()) {
+      toast.error("Give the column a title first");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const prompt = `Generate a precise clinical extraction prompt for a column titled '${column.title.trim()}' with format '${formatLabel(column.format)}'. The prompt should instruct an AI to extract this specific information accurately from any clinical document. Return only the prompt text, nothing else.`;
+      const out = await callProviderText(apiKey, modelId, prompt);
+      onChange({ prompt: out.replace(/^["']|["']$/g, "").trim() });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid gap-2 rounded-md border border-border bg-background p-3"
+    >
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="mt-1.5 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="grid flex-1 gap-2">
+          <div className="grid grid-cols-[1fr,180px] gap-2">
+            <Input
+              value={column.title}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="e.g. Primary Diagnosis, Discharge Medications"
+              className="h-8 text-sm"
+            />
+            <Select
+              value={column.format}
+              onValueChange={(v) => onChange({ format: v as ColumnFormat })}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COLUMN_FORMAT_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Textarea
+              value={column.prompt}
+              onChange={(e) => onChange({ prompt: e.target.value })}
+              placeholder="What should be extracted for this column?"
+              className="min-h-[64px] text-xs"
+            />
+            <div className="flex items-center justify-end">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 gap-1 text-xs"
+                        onClick={autoGenerate}
+                        disabled={generating || !apiKey}
+                      >
+                        {generating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        Auto-Generate
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!apiKey && (
+                    <TooltipContent>Add an AI key in Settings to use Auto-Generate</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="mt-1 text-muted-foreground hover:text-destructive"
+          aria-label="Remove column"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 }
