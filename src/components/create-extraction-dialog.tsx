@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
-import { PROTOCOLS, getProtocol } from "@/lib/protocols";
+import { PROTOCOLS, getProtocol, type ProtocolColumn } from "@/lib/protocols";
 import { getModelChoice } from "@/lib/chat-stream";
 import { runExtraction } from "@/lib/run-extraction";
 import { parseFile, ACCEPTED_FILE_TYPES, type ParsedDoc } from "@/lib/document-parsers";
+import { getClinicalProtocol } from "@/lib/clinical-protocols";
 
 type Doc = ParsedDoc & { parsing?: boolean; error?: string };
 
@@ -36,12 +37,14 @@ export function CreateExtractionDialog({
   userId,
   onCreated,
   initialProtocol,
+  customProtocolId,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   userId: string;
   onCreated: (id: string) => void;
   initialProtocol?: string;
+  customProtocolId?: string;
 }) {
   const { data: profile } = useProfile(userId);
   const [name, setName] = useState("");
