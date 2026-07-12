@@ -2,7 +2,6 @@
 
 <img src="./screenshots/logo.png" alt="Nota Health Logo" width="80" height="80" />
 <img src="./screenshots/hero-landing.png" alt="Nota Health — Clinical documentation is broken. Nota Health is the layer that fixes it." width="100%" />
-# Nota Health
 
 ### Open-source AI platform for clinical documentation intelligence
 
