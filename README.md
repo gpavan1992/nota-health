@@ -349,6 +349,6 @@ Building in public. All feedback welcome.
 *Nota Health is not a medical device.*  
 *All AI outputs require review by a qualified healthcare professional.*
 
-**[nota-health.lovable.app](https://nota-health.lovable.app)**
+**[https://nota-health-hub-ai.lovable.app/](https://nota-health-hub-ai.lovable.app/)**
 
 </div>
