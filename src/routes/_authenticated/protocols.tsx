@@ -471,7 +471,7 @@ function CreateCustomProtocolDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save protocol</Button>
+          <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save protocol"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
