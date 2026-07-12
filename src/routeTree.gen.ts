@@ -34,6 +34,7 @@ import { Route as AuthenticatedToolsPubmedRouteImport } from './routes/_authenti
 import { Route as AuthenticatedToolsProviderRouteImport } from './routes/_authenticated/tools.provider'
 import { Route as AuthenticatedToolsIcdRouteImport } from './routes/_authenticated/tools.icd'
 import { Route as AuthenticatedToolsDrugRouteImport } from './routes/_authenticated/tools.drug'
+import { Route as AuthenticatedProtocolsProtocolIdRouteImport } from './routes/_authenticated/protocols.$protocolId'
 import { Route as AuthenticatedExtractExtractionIdRouteImport } from './routes/_authenticated/extract.$extractionId'
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases.$caseId'
 import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
@@ -167,6 +168,12 @@ const AuthenticatedToolsDrugRoute = AuthenticatedToolsDrugRouteImport.update({
   path: '/tools/drug',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProtocolsProtocolIdRoute =
+  AuthenticatedProtocolsProtocolIdRouteImport.update({
+    id: '/$protocolId',
+    path: '/$protocolId',
+    getParentRoute: () => AuthenticatedProtocolsRoute,
+  } as any)
 const AuthenticatedExtractExtractionIdRoute =
   AuthenticatedExtractExtractionIdRouteImport.update({
     id: '/$extractionId',
@@ -201,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/protocols/$protocolId': typeof AuthenticatedProtocolsProtocolIdRoute
   '/tools/drug': typeof AuthenticatedToolsDrugRoute
   '/tools/icd': typeof AuthenticatedToolsIcdRoute
   '/tools/provider': typeof AuthenticatedToolsProviderRoute
@@ -226,6 +234,7 @@ export interface FileRoutesByTo {
   '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/protocols/$protocolId': typeof AuthenticatedProtocolsProtocolIdRoute
   '/tools/drug': typeof AuthenticatedToolsDrugRoute
   '/tools/icd': typeof AuthenticatedToolsIcdRoute
   '/tools/provider': typeof AuthenticatedToolsProviderRoute
@@ -257,6 +266,7 @@ export interface FileRoutesById {
   '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/_authenticated/extract/$extractionId': typeof AuthenticatedExtractExtractionIdRoute
+  '/_authenticated/protocols/$protocolId': typeof AuthenticatedProtocolsProtocolIdRoute
   '/_authenticated/tools/drug': typeof AuthenticatedToolsDrugRoute
   '/_authenticated/tools/icd': typeof AuthenticatedToolsIcdRoute
   '/_authenticated/tools/provider': typeof AuthenticatedToolsProviderRoute
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/extract/$extractionId'
+    | '/protocols/$protocolId'
     | '/tools/drug'
     | '/tools/icd'
     | '/tools/provider'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/assistant/$threadId'
     | '/cases/$caseId'
     | '/extract/$extractionId'
+    | '/protocols/$protocolId'
     | '/tools/drug'
     | '/tools/icd'
     | '/tools/provider'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assistant/$threadId'
     | '/_authenticated/cases/$caseId'
     | '/_authenticated/extract/$extractionId'
+    | '/_authenticated/protocols/$protocolId'
     | '/_authenticated/tools/drug'
     | '/_authenticated/tools/icd'
     | '/_authenticated/tools/provider'
@@ -549,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedToolsDrugRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/protocols/$protocolId': {
+      id: '/_authenticated/protocols/$protocolId'
+      path: '/$protocolId'
+      fullPath: '/protocols/$protocolId'
+      preLoaderRoute: typeof AuthenticatedProtocolsProtocolIdRouteImport
+      parentRoute: typeof AuthenticatedProtocolsRoute
+    }
     '/_authenticated/extract/$extractionId': {
       id: '/_authenticated/extract/$extractionId'
       path: '/$extractionId'
@@ -616,11 +636,14 @@ const AuthenticatedExtractRouteWithChildren =
   AuthenticatedExtractRoute._addFileChildren(AuthenticatedExtractRouteChildren)
 
 interface AuthenticatedProtocolsRouteChildren {
+  AuthenticatedProtocolsProtocolIdRoute: typeof AuthenticatedProtocolsProtocolIdRoute
   AuthenticatedProtocolsIndexRoute: typeof AuthenticatedProtocolsIndexRoute
 }
 
 const AuthenticatedProtocolsRouteChildren: AuthenticatedProtocolsRouteChildren =
   {
+    AuthenticatedProtocolsProtocolIdRoute:
+      AuthenticatedProtocolsProtocolIdRoute,
     AuthenticatedProtocolsIndexRoute: AuthenticatedProtocolsIndexRoute,
   }
 

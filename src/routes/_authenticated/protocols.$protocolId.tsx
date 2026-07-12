@@ -289,40 +289,39 @@ function ExtractionTable({ protocol }: { protocol: ResolvedProtocol }) {
             const Icon = FORMAT_ICONS[r.format] ?? FORMAT_ICONS.free_text;
             const isOpen = expanded.has(r.key);
             return (
-              <>
-                <tr key={r.key} className="hover:bg-muted/20">
-                  <td className="px-3 py-2.5">
-                    <Checkbox aria-label={`Select ${r.title}`} />
-                  </td>
-                  <td className="px-3 py-2.5 font-medium text-foreground">{r.title}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{formatLabel(r.format)}</span>
-                    </div>
-                  </td>
-                  <td className="max-w-0 px-3 py-2.5 text-muted-foreground">
-                    {isOpen ? (
-                      <span className="whitespace-pre-wrap">{r.prompt || "—"}</span>
-                    ) : (
-                      <span className="block truncate">{r.prompt || "—"}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => toggle(r.key)}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label={isOpen ? "Collapse" : "Expand"}
-                    >
-                      <ChevronRight
-                        className={`h-4 w-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                      />
-                    </button>
-                  </td>
-                </tr>
-              </>
+              <tr key={r.key} className="hover:bg-muted/20">
+                <td className="px-3 py-2.5">
+                  <Checkbox aria-label={`Select ${r.title}`} />
+                </td>
+                <td className="px-3 py-2.5 font-medium text-foreground">{r.title}</td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{formatLabel(r.format)}</span>
+                  </div>
+                </td>
+                <td className="max-w-0 px-3 py-2.5 text-muted-foreground">
+                  {isOpen ? (
+                    <span className="whitespace-pre-wrap">{r.prompt || "—"}</span>
+                  ) : (
+                    <span className="block truncate">{r.prompt || "—"}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggle(r.key)}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label={isOpen ? "Collapse" : "Expand"}
+                  >
+                    <ChevronRight
+                      className={`h-4 w-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                    />
+                  </button>
+                </td>
+              </tr>
             );
+
           })}
         </tbody>
       </table>
