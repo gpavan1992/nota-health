@@ -9,7 +9,10 @@ import {
   MoreHorizontal,
   Trash2,
   Play,
+  Pencil,
+  Power,
 } from "lucide-react";
+
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -45,18 +48,23 @@ import {
   BUILT_IN_PROTOCOLS,
   loadCustomProtocols,
   saveCustomProtocol,
+  updateCustomProtocol,
   deleteCustomProtocol,
+  loadDeactivatedIds,
+  deactivateBuiltIn,
+  activateBuiltIn,
   type ClinicalProtocol,
   type CustomProtocol,
   type ProtocolType,
 } from "@/lib/clinical-protocols";
+
 
 export const Route = createFileRoute("/_authenticated/protocols")({
   head: () => ({ meta: [{ title: "Protocols — Nota Health" }] }),
   component: ProtocolsPage,
 });
 
-type Row = ClinicalProtocol & { source: "Built-in" | "Custom" };
+type Row = ClinicalProtocol & { source: "Built-in" | "Custom"; deactivated: boolean };
 
 function ProtocolsPage() {
   const { user } = Route.useRouteContext();
@@ -65,10 +73,13 @@ function ProtocolsPage() {
   const [tab, setTab] = useState<"all" | "built-in" | "custom">("all");
   const [search, setSearch] = useState("");
   const [customs, setCustoms] = useState<CustomProtocol[]>([]);
+  const [deactivatedIds, setDeactivatedIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<CustomProtocol | null>(null);
 
   useEffect(() => {
     setCustoms(loadCustomProtocols());
+    setDeactivatedIds(loadDeactivatedIds());
   }, []);
 
   function refreshCustoms() {
@@ -76,8 +87,17 @@ function ProtocolsPage() {
   }
 
   const rows: Row[] = useMemo(() => {
-    const builtIn: Row[] = BUILT_IN_PROTOCOLS.map((p) => ({ ...p, source: "Built-in" }));
-    const custom: Row[] = customs.map((p) => ({ ...p, source: "Custom" }));
+    const deactSet = new Set(deactivatedIds);
+    const builtIn: Row[] = BUILT_IN_PROTOCOLS.map((p) => ({
+      ...p,
+      source: "Built-in",
+      deactivated: deactSet.has(p.id),
+    }));
+    const custom: Row[] = customs.map((p) => ({
+      ...p,
+      source: "Custom",
+      deactivated: false,
+    }));
     let list: Row[] = [...builtIn, ...custom];
     if (tab === "built-in") list = builtIn;
     if (tab === "custom") list = custom;
@@ -91,9 +111,10 @@ function ProtocolsPage() {
       );
     }
     return list;
-  }, [customs, tab, search]);
+  }, [customs, deactivatedIds, tab, search]);
 
   async function runProtocol(p: Row) {
+    if (p.deactivated) return;
     if (p.type === "extraction") {
       const target = p.extractionProtocolId ?? "custom";
       navigate({ to: "/extract", search: { new: true, protocol: target } });
@@ -122,6 +143,23 @@ function ProtocolsPage() {
     refreshCustoms();
     toast.success("Custom protocol deleted");
   }
+
+  function handleToggleActive(p: Row) {
+    if (p.deactivated) {
+      activateBuiltIn(p.id);
+      toast.success("Protocol activated");
+    } else {
+      deactivateBuiltIn(p.id);
+      toast.success("Protocol deactivated");
+    }
+    setDeactivatedIds(loadDeactivatedIds());
+  }
+
+  function handleEditCustom(p: Row) {
+    const record = customs.find((c) => c.id === p.id);
+    if (record) setEditing(record);
+  }
+
 
   return (
     <AppShell user={user}>
@@ -184,11 +222,18 @@ function ProtocolsPage() {
                 {rows.map((p) => (
                   <tr
                     key={p.id}
-                    className="cursor-pointer hover:bg-muted/30"
+                    className={`hover:bg-muted/30 ${p.deactivated ? "opacity-50" : "cursor-pointer"}`}
                     onClick={() => void runProtocol(p)}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-foreground">{p.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{p.name}</span>
+                        {p.deactivated && (
+                          <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                            Inactive
+                          </Badge>
+                        )}
+                      </div>
                       <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                         {p.description}
                       </div>
@@ -215,28 +260,40 @@ function ProtocolsPage() {
                           variant="outline"
                           className="h-7 text-xs"
                           onClick={() => void runProtocol(p)}
+                          disabled={p.deactivated}
                         >
                           <Play className="mr-1 h-3 w-3" />
                           Use
                         </Button>
-                        {p.source === "Custom" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteCustom(p.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {p.source === "Custom" ? (
+                              <>
+                                <DropdownMenuItem onClick={() => handleEditCustom(p)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteCustom(p.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleToggleActive(p)}>
+                                <Power className="mr-2 h-4 w-4" />
+                                {p.deactivated ? "Activate" : "Deactivate"}
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -248,13 +305,22 @@ function ProtocolsPage() {
       </Card>
 
       <CreateCustomProtocolDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={() => {
+        open={createOpen || editing !== null}
+        initial={editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCreateOpen(false);
+            setEditing(null);
+          } else if (!editing) {
+            setCreateOpen(true);
+          }
+        }}
+        onSaved={(mode) => {
           refreshCustoms();
-          toast.success("Custom protocol saved");
+          toast.success(mode === "edit" ? "Protocol updated" : "Custom protocol saved");
         }}
       />
+
     </AppShell>
   );
 }
@@ -278,12 +344,14 @@ function TypeBadge({ type }: { type: ProtocolType }) {
 
 function CreateCustomProtocolDialog({
   open,
+  initial,
   onOpenChange,
-  onCreated,
+  onSaved,
 }: {
   open: boolean;
+  initial?: CustomProtocol | null;
   onOpenChange: (o: boolean) => void;
-  onCreated: () => void;
+  onSaved: (mode: "create" | "edit") => void;
 }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<ProtocolType>("assistant");
@@ -293,12 +361,12 @@ function CreateCustomProtocolDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName("");
-    setType("assistant");
-    setClinicalArea("");
-    setDescription("");
-    setSeedPrompt("");
-  }, [open]);
+    setName(initial?.name ?? "");
+    setType(initial?.type ?? "assistant");
+    setClinicalArea(initial?.clinicalArea ?? "");
+    setDescription(initial?.description ?? "");
+    setSeedPrompt(initial?.seedPrompt ?? "");
+  }, [open, initial]);
 
   function handleSave() {
     if (!name.trim()) {
@@ -309,7 +377,7 @@ function CreateCustomProtocolDialog({
       toast.error("Add a starter prompt for the assistant");
       return;
     }
-    saveCustomProtocol({
+    const payload = {
       name: name.trim(),
       type,
       clinicalArea: clinicalArea.trim() || "General",
@@ -317,20 +385,30 @@ function CreateCustomProtocolDialog({
       seedPrompt: seedPrompt.trim() || undefined,
       // Custom extraction protocols fall back to "start from scratch" in Extract.
       extractionProtocolId: type === "extraction" ? "custom" : undefined,
-    });
-    onOpenChange(false);
-    onCreated();
+    };
+    if (initial) {
+      updateCustomProtocol(initial.id, payload);
+      onOpenChange(false);
+      onSaved("edit");
+    } else {
+      saveCustomProtocol(payload);
+      onOpenChange(false);
+      onSaved("create");
+    }
   }
+
+  const isEdit = !!initial;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create custom protocol</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit custom protocol" : "Create custom protocol"}</DialogTitle>
           <DialogDescription>
             Save a reusable workflow. Choose Assistant to pre-seed a chat, or Extraction to route into a structured table.
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label htmlFor="cp-name">Name</Label>
@@ -393,7 +471,7 @@ function CreateCustomProtocolDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save protocol</Button>
+          <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save protocol"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

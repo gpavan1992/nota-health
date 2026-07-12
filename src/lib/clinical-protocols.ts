@@ -122,10 +122,49 @@ export function saveCustomProtocol(p: Omit<CustomProtocol, "id" | "createdAt">):
   return record;
 }
 
+export function updateCustomProtocol(
+  id: string,
+  patch: Partial<Omit<CustomProtocol, "id" | "createdAt">>,
+): CustomProtocol | undefined {
+  const list = loadCustomProtocols();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx === -1) return undefined;
+  const updated: CustomProtocol = { ...list[idx], ...patch };
+  list[idx] = updated;
+  window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(list));
+  return updated;
+}
+
 export function deleteCustomProtocol(id: string) {
   const list = loadCustomProtocols().filter((p) => p.id !== id);
   window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(list));
 }
+
+const DEACTIVATED_KEY = "nota.deactivated_protocols";
+
+export function loadDeactivatedIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DEACTIVATED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function deactivateBuiltIn(id: string) {
+  const set = new Set(loadDeactivatedIds());
+  set.add(id);
+  window.localStorage.setItem(DEACTIVATED_KEY, JSON.stringify([...set]));
+}
+
+export function activateBuiltIn(id: string) {
+  const list = loadDeactivatedIds().filter((x) => x !== id);
+  window.localStorage.setItem(DEACTIVATED_KEY, JSON.stringify(list));
+}
+
 
 export function getClinicalProtocol(id: string): ClinicalProtocol | undefined {
   return (
