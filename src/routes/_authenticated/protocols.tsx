@@ -233,13 +233,52 @@ function ProtocolsPage() {
             <TabsTrigger value="custom">Custom</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search protocols…"
-          className="max-w-xs"
-        />
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <>
+              <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Actions
+                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selBuiltInActive.length > 0 && (
+                    <DropdownMenuItem onClick={bulkDeactivate}>
+                      <Power className="mr-2 h-4 w-4" />
+                      Deactivate ({selBuiltInActive.length})
+                    </DropdownMenuItem>
+                  )}
+                  {selBuiltInInactive.length > 0 && (
+                    <DropdownMenuItem onClick={bulkActivate}>
+                      <Power className="mr-2 h-4 w-4" />
+                      Activate ({selBuiltInInactive.length})
+                    </DropdownMenuItem>
+                  )}
+                  {selCustom.length > 0 && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={bulkDelete}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete ({selCustom.length})
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search protocols…"
+            className="max-w-xs"
+          />
+        </div>
       </div>
+
 
       <Card className="mt-4">
         <CardContent className="p-0">
