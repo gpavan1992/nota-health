@@ -9,7 +9,10 @@ import {
   MoreHorizontal,
   Trash2,
   Play,
+  Pencil,
+  Power,
 } from "lucide-react";
+
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
