@@ -163,6 +163,53 @@ function ProtocolsPage() {
     if (record) setEditing(record);
   }
 
+  function toggleRow(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  const visibleIds = rows.map((r) => r.id);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const someSelected = visibleIds.some((id) => selected.has(id));
+
+  function toggleAll(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) visibleIds.forEach((id) => next.add(id));
+      else visibleIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  }
+
+  const selectedRows = rows.filter((r) => selected.has(r.id));
+  const selBuiltInActive = selectedRows.filter((r) => r.source === "Built-in" && !r.deactivated);
+  const selBuiltInInactive = selectedRows.filter((r) => r.source === "Built-in" && r.deactivated);
+  const selCustom = selectedRows.filter((r) => r.source === "Custom");
+
+  function bulkDeactivate() {
+    selBuiltInActive.forEach((r) => deactivateBuiltIn(r.id));
+    setDeactivatedIds(loadDeactivatedIds());
+    setSelected(new Set());
+    toast.success(`Deactivated ${selBuiltInActive.length} protocol(s)`);
+  }
+  function bulkActivate() {
+    selBuiltInInactive.forEach((r) => activateBuiltIn(r.id));
+    setDeactivatedIds(loadDeactivatedIds());
+    setSelected(new Set());
+    toast.success(`Activated ${selBuiltInInactive.length} protocol(s)`);
+  }
+  function bulkDelete() {
+    selCustom.forEach((r) => deleteCustomProtocol(r.id));
+    refreshCustoms();
+    setSelected(new Set());
+    toast.success(`Deleted ${selCustom.length} protocol(s)`);
+  }
+
+
 
   return (
     <AppShell user={user}>
