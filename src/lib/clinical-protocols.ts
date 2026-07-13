@@ -250,6 +250,23 @@ export function activateBuiltIn(id: string) {
   window.localStorage.setItem(DEACTIVATED_KEY, JSON.stringify(list));
 }
 
+export function renameCustomProtocol(id: string, name: string) {
+  return updateCustomProtocol(id, { name });
+}
+
+export function duplicateProtocol(source: ClinicalProtocol): CustomProtocol {
+  return saveCustomProtocol({
+    name: `${source.name} (copy)`,
+    type: source.type,
+    clinicalArea: source.clinicalArea,
+    description: source.description,
+    seedPrompt: source.seedPrompt,
+    extractionProtocolId: source.extractionProtocolId,
+    extractionColumns: source.extractionColumns?.map((c) => ({ ...c, id: newColumnId() })),
+  });
+}
+
+
 
 export function getClinicalProtocol(id: string): ClinicalProtocol | undefined {
   return (
