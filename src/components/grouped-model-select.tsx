@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MODEL_GROUPS, findModel } from "@/lib/model-catalog";
+import { MODEL_GROUPS, findModel, type ProviderId } from "@/lib/model-catalog";
 import { ProviderMark } from "@/components/provider-mark";
 import { cn } from "@/lib/utils";
 
