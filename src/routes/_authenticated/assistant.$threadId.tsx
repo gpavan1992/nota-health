@@ -111,8 +111,15 @@ function AssistantThread() {
   const [liveSteps, setLiveSteps] = useState<ChatStep[]>([]);
   const [atBottom, setAtBottom] = useState(true);
   const [preview, setPreview] = useState<PreviewSource | null>(null);
+  const [mountPulse, setMountPulse] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Brief perceived-performance cue on fresh screen mount (~500ms).
+  useEffect(() => {
+    const t = setTimeout(() => setMountPulse(false), 500);
+    return () => clearTimeout(t);
+  }, [threadId]);
 
   // Session-scoped map of attachment id -> preview source (blob url + text)
   const previewMapRef = useRef<Map<string, PreviewSource>>(new Map());
