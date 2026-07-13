@@ -80,8 +80,9 @@ export function UseProtocolDialog({
         if (target === "case" && caseId) {
           await supabase
             .from("case_conversations")
-            .insert({ case_id: caseId, thread_id: thread.id, added_by: userId });
+            .insert({ case_id: caseId, title: protocol.name });
         }
+
         qc.invalidateQueries({ queryKey: ["chat_threads", userId] });
         onOpenChange(false);
         navigate({
