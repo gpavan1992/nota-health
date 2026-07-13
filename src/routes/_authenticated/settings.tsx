@@ -1071,9 +1071,18 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
         initial={profile.google_api_key ?? ""}
         currentModel={profile.ai_model ?? null}
       />
+      <OllamaConfigCard
+        userId={userId}
+        initialBaseUrl={profile.ollama_base_url ?? ""}
+        initialToken={profile.ollama_api_key ?? ""}
+      />
       <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <p>You must provide at least one API key. Keys are encrypted in storage.</p>
+        <p>
+          You must provide at least one API key. Keys are encrypted in storage.
+          Ollama's bearer token is only needed for remote or proxied instances —
+          local installs (e.g. <span className="font-mono">http://localhost:11434</span>) can leave it blank.
+        </p>
       </div>
     </div>
   );
