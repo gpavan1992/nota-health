@@ -3,6 +3,10 @@
 <img src="./screenshots/logo.png" alt="Nota Health Logo" width="80" height="80" />
 <img src="./screenshots/hero-landing.png" alt="Nota Health — Clinical documentation is broken. Nota Health is the layer that fixes it." width="100%" />
 
+<div align="center">
+  <img src="./screenshots/demo.gif" alt="Nota Health product walkthrough" width="100%"/>
+</div>
+
 ### Open-source AI platform for clinical documentation intelligence
 
 **The AI layer for the 49% of physician time that doesn't involve patients.**
