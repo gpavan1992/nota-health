@@ -135,14 +135,19 @@ export const generateThreadTitle = createServerFn({ method: "POST" })
   });
 
 async function logFail(
-  sb: { from: (t: string) => { insert: (row: Record<string, unknown>) => Promise<unknown> } },
+  sb: unknown,
   threadId: string,
   userId: string,
   reason: string,
   raw: string,
 ) {
   try {
-    await sb.from("chat_title_generation_logs").insert({
+    const client = sb as {
+      from: (t: string) => {
+        insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
+      };
+    };
+    await client.from("chat_title_generation_logs").insert({
       thread_id: threadId,
       user_id: userId,
       reason,
