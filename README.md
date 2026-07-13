@@ -359,8 +359,6 @@ Nota Health is open source under AGPL-3.0 and welcomes contributions.
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=gpavan1992/nota-health-hub-ai&type=Date)](https://star-history.com/#gpavan1992/nota-health-hub-ai&Date)
-
 ## License
 Nota Health is licensed under **AGPL-3.0**.
 
