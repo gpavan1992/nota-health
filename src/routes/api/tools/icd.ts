@@ -9,9 +9,10 @@ import { createFileRoute } from "@tanstack/react-router";
 const NLM = "https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search";
 
 export const Route = createFileRoute("/api/tools/icd")({
+  // @ts-expect-error - server handlers typing not exposed in this TanStack version
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const q = (url.searchParams.get("q") ?? "").trim();
         if (!q) return Response.json({ error: "Missing query" }, { status: 400 });

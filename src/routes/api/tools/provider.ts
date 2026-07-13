@@ -34,9 +34,10 @@ type NpiResult = {
 };
 
 export const Route = createFileRoute("/api/tools/provider")({
+  // @ts-expect-error - server handlers typing not exposed in this TanStack version
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const npi = (url.searchParams.get("npi") ?? "").trim();
         const first = (url.searchParams.get("first") ?? "").trim();

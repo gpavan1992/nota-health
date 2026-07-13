@@ -104,6 +104,10 @@ function readPrefs(p: Profile | null | undefined): Preferences {
   };
 }
 
+// Feature flag: Connectors tab is scoped out pre-launch and will return in v1.1.
+// Enable by setting VITE_ENABLE_CONNECTORS="true" in the environment.
+const CONNECTORS_ENABLED = import.meta.env.VITE_ENABLE_CONNECTORS === "true";
+
 function SettingsPage() {
   const { user } = Route.useRouteContext();
   const { data: profile, isLoading } = useProfile(user.id);
@@ -142,9 +146,11 @@ function SettingsPage() {
               <TabsTrigger value="keys" className="gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" /> API Keys
               </TabsTrigger>
-              <TabsTrigger value="connectors" className="gap-1.5">
-                <Plug className="h-3.5 w-3.5" /> Connectors
-              </TabsTrigger>
+              {CONNECTORS_ENABLED && (
+                <TabsTrigger value="connectors" className="gap-1.5">
+                  <Plug className="h-3.5 w-3.5" /> Connectors
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="general">
@@ -165,9 +171,11 @@ function SettingsPage() {
             <TabsContent value="keys">
               <ApiKeysTab userId={user.id} profile={profile} />
             </TabsContent>
-            <TabsContent value="connectors">
-              <ConnectorsTab userId={user.id} />
-            </TabsContent>
+            {CONNECTORS_ENABLED && (
+              <TabsContent value="connectors">
+                <ConnectorsTab userId={user.id} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>
