@@ -4,7 +4,7 @@
 <img src="./screenshots/hero-landing.png" alt="Nota Health — Clinical documentation is broken. Nota Health is the layer that fixes it." width="100%" />
 
 <div align="center">
-  <img src="./screenshots/demo.gif" alt="Nota Health product walkthrough" width="100%"/>
+  <img src="./screenshots/nota-health-demo.gif" alt="Nota Health product walkthrough" width="100%"/>
 </div>
 
 ### Open-source AI platform for clinical documentation intelligence
