@@ -9,7 +9,6 @@ import {
   Table as TableIcon,
   MoreHorizontal,
   Trash2,
-  Play,
   Pencil,
   Power,
   Copy as CopyIcon,
@@ -17,7 +16,6 @@ import {
   Search,
   Star,
   User as UserIcon,
-  ExternalLink,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
