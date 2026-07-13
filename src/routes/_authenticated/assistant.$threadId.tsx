@@ -111,8 +111,15 @@ function AssistantThread() {
   const [liveSteps, setLiveSteps] = useState<ChatStep[]>([]);
   const [atBottom, setAtBottom] = useState(true);
   const [preview, setPreview] = useState<PreviewSource | null>(null);
+  const [mountPulse, setMountPulse] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Brief perceived-performance cue on fresh screen mount (~500ms).
+  useEffect(() => {
+    const t = setTimeout(() => setMountPulse(false), 500);
+    return () => clearTimeout(t);
+  }, [threadId]);
 
   // Session-scoped map of attachment id -> preview source (blob url + text)
   const previewMapRef = useRef<Map<string, PreviewSource>>(new Map());
@@ -550,7 +557,13 @@ function AssistantThread() {
         >
           {!hasMessages ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-[0.72rem] font-medium uppercase tracking-[0.16em] text-primary">
+              <p className="inline-flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-primary">
+                {mountPulse && (
+                  <span
+                    aria-hidden
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+                  />
+                )}
                 Clinical Assistant
               </p>
               <h1 className="mt-3 font-serif text-4xl font-medium tracking-tight text-foreground">
