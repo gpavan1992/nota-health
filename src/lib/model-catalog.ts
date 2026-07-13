@@ -36,7 +36,6 @@ export const MODEL_GROUPS: ProviderGroup[] = [
       { value: "claude-opus-4-8", label: "Claude Opus 4.8", apiModel: "claude-opus-4-8" },
       { value: "claude-opus-4-7", label: "Claude Opus 4.7", apiModel: "claude-opus-4-7" },
       { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", apiModel: "claude-sonnet-4-6" },
-      { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", apiModel: "claude-haiku-4-5" },
     ],
   },
   {
@@ -46,11 +45,9 @@ export const MODEL_GROUPS: ProviderGroup[] = [
     ring: "ring-[#4285F4]/25",
     bg: "bg-[#4285F4]/10",
     models: [
-      { value: "gemini-2-5-pro", label: "Gemini 2.5 Pro", apiModel: "gemini-2.5-pro" },
-      { value: "gemini-2-5-flash", label: "Gemini 2.5 Flash", apiModel: "gemini-2.5-flash" },
-      { value: "gemini-2-0-flash", label: "Gemini 2.0 Flash", apiModel: "gemini-2.0-flash" },
-      { value: "gemini-1-5-flash", label: "Gemini 1.5 Flash", apiModel: "gemini-1.5-flash" },
-      { value: "gemini-1-5-pro", label: "Gemini 1.5 Pro", apiModel: "gemini-1.5-pro" },
+      { value: "gemini-3-5-flash", label: "Gemini 3.5 Flash", apiModel: "gemini-3.5-flash" },
+      { value: "gemini-3-1-pro", label: "Gemini 3.1 Pro", apiModel: "gemini-3.1-pro" },
+      { value: "gemini-3-flash", label: "Gemini 3 Flash", apiModel: "gemini-3-flash" },
     ],
   },
   {
@@ -62,7 +59,6 @@ export const MODEL_GROUPS: ProviderGroup[] = [
     models: [
       { value: "gpt-5-5", label: "GPT-5.5", apiModel: "gpt-5-5" },
       { value: "gpt-5-4", label: "GPT-5.4", apiModel: "gpt-5-4" },
-      { value: "gpt-5-4-lite", label: "GPT-5.4 Lite", apiModel: "gpt-5-4-lite" },
     ],
   },
   {

@@ -968,11 +968,12 @@ function SessionsCard({ userId: _userId }: { userId: string }) {
 /* ------------------------------ Models ------------------------------ */
 
 function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
-  const [primary, setPrimary] = useState(profile.ai_model || "claude-3-5-sonnet-latest");
+  const [primary, setPrimary] = useState(profile.ai_model || "gemini-3-flash");
   const [secondary, setSecondary] = useState(
-    profile.ai_model_secondary || "claude-3-5-haiku-latest",
+    profile.ai_model_secondary || "gemini-3-5-flash",
   );
   const update = useUpdateProfile(userId);
+  const hiddenProviders = profile.anthropic_api_key ? [] : (["anthropic"] as const);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -993,14 +994,21 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
           Choose which model powers each Nota Health workflow. Models are grouped
-          by provider — Anthropic, OpenAI, and Google Gemini.
+          by provider — Google Gemini, OpenAI, and Ollama (local). Anthropic
+          models appear once you add an Anthropic API key.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSave} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="primary-model">Primary model — Clinical Assistant</Label>
-            <GroupedModelSelect id="primary-model" value={primary} onValueChange={setPrimary} showHint />
+            <GroupedModelSelect
+              id="primary-model"
+              value={primary}
+              onValueChange={setPrimary}
+              showHint
+              hiddenProviders={[...hiddenProviders]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="secondary-model">Secondary model — Clinical Extractions</Label>
@@ -1009,6 +1017,7 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
               value={secondary}
               onValueChange={setSecondary}
               showHint
+              hiddenProviders={[...hiddenProviders]}
             />
           </div>
 
@@ -1062,9 +1071,18 @@ function ApiKeysTab({ userId, profile }: { userId: string; profile: Profile }) {
         initial={profile.google_api_key ?? ""}
         currentModel={profile.ai_model ?? null}
       />
+      <OllamaConfigCard
+        userId={userId}
+        initialBaseUrl={profile.ollama_base_url ?? ""}
+        initialToken={profile.ollama_api_key ?? ""}
+      />
       <div className="flex gap-3 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <p>You must provide at least one API key. Keys are encrypted in storage.</p>
+        <p>
+          You must provide at least one API key. Keys are encrypted in storage.
+          Ollama's bearer token is only needed for remote or proxied instances —
+          local installs (e.g. <span className="font-mono">http://localhost:11434</span>) can leave it blank.
+        </p>
       </div>
     </div>
   );
@@ -1211,6 +1229,186 @@ function ApiKeyCard({
                   onClick={() => {
                     setValue("");
                     setShow(false);
+                    setEditing(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" size="sm" disabled={update.isPending}>
+                {update.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ---------------------------- Ollama config ---------------------------- */
+
+function OllamaConfigCard({
+  userId,
+  initialBaseUrl,
+  initialToken,
+}: {
+  userId: string;
+  initialBaseUrl: string;
+  initialToken: string;
+}) {
+  const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
+  const [token, setToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [editing, setEditing] = useState(!initialBaseUrl && !initialToken);
+  const hasToken = !!initialToken;
+  const update = useUpdateProfile(userId);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmedUrl = baseUrl.trim();
+    const trimmedToken = token.trim();
+    if (!trimmedUrl) {
+      toast.error("Enter an Ollama base URL (e.g. http://localhost:11434).");
+      return;
+    }
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      toast.error("That doesn't look like a valid URL.");
+      return;
+    }
+    if (trimmedToken.length > 300) {
+      toast.error("That bearer token looks too long.");
+      return;
+    }
+    try {
+      const patch: Record<string, string | null> = { ollama_base_url: trimmedUrl };
+      // Only overwrite the token when the user typed one; blank keeps the saved value.
+      if (trimmedToken) patch.ollama_api_key = trimmedToken;
+      await update.mutateAsync(patch);
+      toast.success("Ollama configuration saved");
+      setToken("");
+      setShowToken(false);
+      setEditing(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    }
+  }
+
+  async function clear() {
+    try {
+      await update.mutateAsync({ ollama_base_url: null, ollama_api_key: null });
+      toast.success("Ollama configuration removed");
+      setBaseUrl("");
+      setToken("");
+      setEditing(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Ollama (Local / Self-Hosted)</CardTitle>
+        <CardDescription>
+          Point Nota Health at your Ollama server. A bearer token is only required
+          if the endpoint is proxied behind auth.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!editing ? (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Base URL</Label>
+              <Input
+                value={initialBaseUrl}
+                readOnly
+                disabled
+                className="font-mono text-sm disabled:cursor-default disabled:opacity-100"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Bearer token</Label>
+              <Input
+                value=""
+                readOnly
+                disabled
+                placeholder={hasToken ? "Saved token hidden" : "Not set"}
+                className="font-mono text-sm disabled:cursor-default disabled:opacity-100"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-4 text-sm">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={clear}
+                disabled={update.isPending}
+                className="font-medium text-destructive transition hover:text-destructive/80 disabled:opacity-50"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={save} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="ollama-base-url" className="text-xs text-muted-foreground">
+                Base URL
+              </Label>
+              <Input
+                id="ollama-base-url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="http://localhost:11434"
+                autoComplete="off"
+                spellCheck={false}
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ollama-token" className="text-xs text-muted-foreground">
+                Bearer token <span className="text-muted-foreground/70">(optional)</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="ollama-token"
+                  type={showToken ? "text" : "password"}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder={hasToken ? "Leave blank to keep saved token" : "Optional bearer token"}
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={300}
+                  className="pr-10 font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                  aria-label={showToken ? "Hide token" : "Show token"}
+                >
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              {(initialBaseUrl || initialToken) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setBaseUrl(initialBaseUrl);
+                    setToken("");
+                    setShowToken(false);
                     setEditing(false);
                   }}
                 >

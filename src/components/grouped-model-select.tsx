@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MODEL_GROUPS, findModel } from "@/lib/model-catalog";
+import { MODEL_GROUPS, findModel, type ProviderId } from "@/lib/model-catalog";
 import { ProviderMark } from "@/components/provider-mark";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export function GroupedModelSelect({
   size = "default",
   className,
   showHint = false,
+  hiddenProviders,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -31,12 +32,18 @@ export function GroupedModelSelect({
   size?: "default" | "sm";
   className?: string;
   showHint?: boolean;
+  /** Provider ids to hide entirely (e.g. when the user has no API key for them). */
+  hiddenProviders?: ProviderId[];
 }) {
   const selected = findModel(value);
   const triggerCls =
     size === "sm"
       ? "h-8 min-w-[200px] text-xs [&>svg]:h-3.5 [&>svg]:w-3.5"
       : "";
+
+  const visibleGroups = MODEL_GROUPS.filter(
+    (g) => !hiddenProviders?.includes(g.id),
+  );
 
   return (
     <Select value={value} onValueChange={onValueChange}>
@@ -53,7 +60,7 @@ export function GroupedModelSelect({
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="max-h-[420px]">
-        {MODEL_GROUPS.map((group, i) => (
+        {visibleGroups.map((group, i) => (
           <div key={group.id}>
             {i > 0 && <SelectSeparator />}
             <SelectGroup>
