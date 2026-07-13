@@ -188,7 +188,7 @@ export function CreateExtractionDialog({
         modelId,
         protocolName: effectiveProtocolName,
         columns: effectiveColumns,
-        customInstruction: protocolId === "custom" && customColumns.length === 0 ? customInstruction : undefined,
+        customInstruction: customInstruction.trim() || undefined,
         documents: usable,
       });
       await supabase
