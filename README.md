@@ -317,6 +317,7 @@ clinical documentation workflows:
 - [ ] FHIR R4 document export
 - [ ] Custom extraction schemas
 - [ ] Bulk document processing
+- [ ] MCP connector support — provider-agnostic tool use for the Clinical Assistant
 
 **v2.0 — Future**
 - [ ] EHR webhook integration
