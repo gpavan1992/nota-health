@@ -167,9 +167,10 @@ function semanticMatch(
 }
 
 export const Route = createFileRoute("/api/tools/interactions")({
+  // @ts-expect-error - server handlers typing not exposed in this TanStack version
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const raw = (url.searchParams.get("drugs") ?? "").trim();
         const drugs = raw

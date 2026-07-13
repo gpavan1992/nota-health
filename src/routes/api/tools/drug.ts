@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { fetchBestLabel, getLabelField } from "@/lib/drug-label";
 
 export const Route = createFileRoute("/api/tools/drug")({
+  // @ts-expect-error - server handlers typing not exposed in this TanStack version
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         const url = new URL(request.url);
         const q = (url.searchParams.get("q") ?? "").trim();
         if (!q) return Response.json({ error: "Missing query" }, { status: 400 });
