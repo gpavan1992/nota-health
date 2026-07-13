@@ -171,9 +171,11 @@ function SettingsPage() {
             <TabsContent value="keys">
               <ApiKeysTab userId={user.id} profile={profile} />
             </TabsContent>
-            <TabsContent value="connectors">
-              <ConnectorsTab userId={user.id} />
-            </TabsContent>
+            {CONNECTORS_ENABLED && (
+              <TabsContent value="connectors">
+                <ConnectorsTab userId={user.id} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>
