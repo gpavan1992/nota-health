@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { generateThreadTitle } from "@/lib/thread-title.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
