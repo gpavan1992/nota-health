@@ -146,9 +146,11 @@ function SettingsPage() {
               <TabsTrigger value="keys" className="gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" /> API Keys
               </TabsTrigger>
-              <TabsTrigger value="connectors" className="gap-1.5">
-                <Plug className="h-3.5 w-3.5" /> Connectors
-              </TabsTrigger>
+              {CONNECTORS_ENABLED && (
+                <TabsTrigger value="connectors" className="gap-1.5">
+                  <Plug className="h-3.5 w-3.5" /> Connectors
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="general">
