@@ -313,6 +313,8 @@ export type Database = {
           full_name: string | null
           google_api_key: string | null
           id: string
+          ollama_api_key: string | null
+          ollama_base_url: string | null
           openai_api_key: string | null
           organization: string | null
           preferences: Json
@@ -329,6 +331,8 @@ export type Database = {
           full_name?: string | null
           google_api_key?: string | null
           id: string
+          ollama_api_key?: string | null
+          ollama_base_url?: string | null
           openai_api_key?: string | null
           organization?: string | null
           preferences?: Json
@@ -345,6 +349,8 @@ export type Database = {
           full_name?: string | null
           google_api_key?: string | null
           id?: string
+          ollama_api_key?: string | null
+          ollama_base_url?: string | null
           openai_api_key?: string | null
           organization?: string | null
           preferences?: Json
