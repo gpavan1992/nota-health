@@ -436,7 +436,7 @@ function AssistantThread() {
       // Fire-and-forget so streaming isn't blocked. Server fn re-checks flags,
       // enforces an 8s timeout, and validates PHI/length before writing.
       void generateThreadTitleFn({ data: { threadId, firstMessage: trimmed } })
-        .then((r) => {
+        .then((r: { ok: boolean } | undefined) => {
           if (r && r.ok) {
             qc.invalidateQueries({ queryKey: ["chat_threads", user.id] });
           }
