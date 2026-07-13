@@ -104,6 +104,10 @@ function readPrefs(p: Profile | null | undefined): Preferences {
   };
 }
 
+// Feature flag: Connectors tab is scoped out pre-launch and will return in v1.1.
+// Enable by setting VITE_ENABLE_CONNECTORS="true" in the environment.
+const CONNECTORS_ENABLED = import.meta.env.VITE_ENABLE_CONNECTORS === "true";
+
 function SettingsPage() {
   const { user } = Route.useRouteContext();
   const { data: profile, isLoading } = useProfile(user.id);
