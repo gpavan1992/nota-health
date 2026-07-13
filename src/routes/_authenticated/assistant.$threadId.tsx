@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { generateThreadTitle } from "@/lib/thread-title.functions";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -96,6 +98,7 @@ function AssistantThread() {
   const { seed } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const generateThreadTitleFn = useServerFn(generateThreadTitle);
   const { data: profile } = useProfile(user.id);
   const updateProfile = useUpdateProfile(user.id);
   const { data: savedMessages } = useChatMessages(threadId);
@@ -417,12 +420,31 @@ function AssistantThread() {
 
     const isFirst = (savedMessages?.length ?? 0) === 0;
     if (isFirst) {
-      const title = trimmed.slice(0, 60);
-      await supabase.from("chat_threads").update({ title, updated_at: new Date().toISOString() }).eq("id", threadId);
+      const fallback =
+        trimmed.length > 40 ? trimmed.slice(0, 40).trimEnd() + "…" : trimmed;
+      await supabase
+        .from("chat_threads")
+        .update({ title: fallback, updated_at: new Date().toISOString() })
+        .eq("id", threadId)
+        .eq("title_locked", false);
     } else {
       await supabase.from("chat_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
     }
     qc.invalidateQueries({ queryKey: ["chat_threads", user.id] });
+
+    if (isFirst) {
+      // Fire-and-forget so streaming isn't blocked. Server fn re-checks flags,
+      // enforces an 8s timeout, and validates PHI/length before writing.
+      void generateThreadTitleFn({ data: { threadId, firstMessage: trimmed } })
+        .then((r: { ok: boolean } | undefined) => {
+          if (r && r.ok) {
+            qc.invalidateQueries({ queryKey: ["chat_threads", user.id] });
+          }
+        })
+        .catch(() => {
+          /* silent: fallback title remains */
+        });
+    }
 
     setInput("");
     setAttachments([]);

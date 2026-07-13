@@ -184,6 +184,8 @@ export type Database = {
           created_at: string
           id: string
           title: string
+          title_generated: boolean
+          title_locked: boolean
           updated_at: string
           user_id: string
         }
@@ -192,6 +194,8 @@ export type Database = {
           created_at?: string
           id?: string
           title?: string
+          title_generated?: boolean
+          title_locked?: boolean
           updated_at?: string
           user_id: string
         }
@@ -200,6 +204,8 @@ export type Database = {
           created_at?: string
           id?: string
           title?: string
+          title_generated?: boolean
+          title_locked?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -209,6 +215,41 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_title_generation_logs: {
+        Row: {
+          created_at: string
+          id: string
+          raw_output: string | null
+          reason: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          raw_output?: string | null
+          reason: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          raw_output?: string | null
+          reason?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_title_generation_logs_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
             referencedColumns: ["id"]
           },
         ]

@@ -78,7 +78,7 @@ export function useRenameThread(userId: string) {
     mutationFn: async ({ threadId, title }: { threadId: string; title: string }) => {
       const { error } = await supabase
         .from("chat_threads")
-        .update({ title })
+        .update({ title, title_locked: true, title_generated: true })
         .eq("id", threadId);
       if (error) throw error;
     },
