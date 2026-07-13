@@ -17,7 +17,9 @@
 [![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4)](https://lovable.dev)
 [![Clinical APIs](https://img.shields.io/badge/Clinical%20APIs-6%20integrations-teal)](https://github.com/gpavan1992/nota-health)
 
-[**Live Demo**](https://nota-health-hub-ai.lovable.app/) · [**Report a Bug**](https://github.com/gpavan1992/nota-health) · [**Request a Feature**](https://github.com/gpavan1992/nota-health)
+[**Live Demo**](https://nota-health-hub-ai.lovable.app/) · [**Report a Bug**](https://github.com/gpavan1992/nota-health/issues)
+
+[Screenshots](#screenshots) · [Quick Start](#quick-start) · [Architecture](#architecture) · [Roadmap](#roadmap)
 
 </div>
 
@@ -105,8 +107,41 @@ No commercial dependencies. No API keys required for clinical tools.
 
 ---
 
-## Screenshots
+## Why this exists
 
+| Metric | Source |
+|---|---|
+| **49%** of physician time goes to admin, only 27% with patients | NEJM Catalyst |
+| **15.6 hours/week** spent on documentation by clinicians | Annals of Internal Medicine |
+| **$19.7B/year** cost of prior auth denials to US hospitals | AMA, 2023 |
+| **1 in 5** prior auths initially denied, 75% approved on appeal | KFF |
+
+## Compared to a typical SaaS documentation tool
+
+|  | **Nota Health** | Typical SaaS vendor |
+|---|---|---|
+| **Where your data lives** | Your own Supabase project, your own infrastructure | Vendor's servers |
+| **Source code** | Fully open, AGPL — read every line | Closed |
+| **Pricing** | Free to self-host, forever | Per-seat subscription, usually annual |
+| **AI provider** | Bring your own key — Claude, GPT, or Gemini | Locked to whatever the vendor chose |
+| **Customization** | Fork it, extend it, change anything | Feature requests go into a backlog you don't control |
+| **Exit** | Your data, your database — leave anytime | Contract renewal, data export process, migration risk |
+
+Nota Health doesn't compete on having a bigger team or a sales process. It competes on not needing either.
+
+## Is this for you?
+
+**Good fit if you:**
+- Run a clinic or hospital and want AI on your documents without a permanent vendor contract
+- Have a Supabase project and an Anthropic/OpenAI/Gemini API key
+- Want to self-host and control exactly where patient data lives
+
+**Not a fit if you:**
+- Need a plug-and-play SaaS with a support team on call — this is open source, you run it
+- Need in-visit ambient transcription — Nota Health starts after the encounter, not during it
+- Are not comfortable deploying and maintaining a self-hosted app
+
+## Screenshots
 <table>
 <tr>
 <td><img src="./screenshots/clinical-assistant.png" alt="Clinical Assistant" /></td>
@@ -325,8 +360,9 @@ Nota Health is open source under AGPL-3.0 and welcomes contributions.
 
 ---
 
-## License
+[![Star History Chart](https://api.star-history.com/svg?repos=gpavan1992/nota-health&type=Date)](https://star-history.com/#gpavan1992/nota-health&Date)
 
+## License
 Nota Health is licensed under **AGPL-3.0**.
 
 This means:
