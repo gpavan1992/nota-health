@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { AppShell } from "@/components/app-shell";
-import { useCreateThread } from "@/hooks/use-chat-threads";
+import { useChatThreads, useCreateThread } from "@/hooks/use-chat-threads";
 
 export const Route = createFileRoute("/_authenticated/assistant/")({
   component: AssistantIndex,
@@ -10,24 +10,27 @@ export const Route = createFileRoute("/_authenticated/assistant/")({
 function AssistantIndex() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const { data: threads, isLoading } = useChatThreads(user.id);
   const create = useCreateThread(user.id);
   const started = useRef(false);
 
-  // Always start a fresh conversation — never resume a previous thread here.
-  // History lives in the sidebar's "Chat History" section.
   useEffect(() => {
-    if (started.current) return;
+    if (isLoading || started.current) return;
     started.current = true;
-    create.mutate(undefined, {
-      onSuccess: (t) =>
-        navigate({ to: "/assistant/$threadId", params: { threadId: t.id }, replace: true }),
-    });
-  }, [navigate, create]);
+    if (threads && threads.length > 0) {
+      navigate({ to: "/assistant/$threadId", params: { threadId: threads[0].id }, replace: true });
+    } else {
+      create.mutate(undefined, {
+        onSuccess: (t) =>
+          navigate({ to: "/assistant/$threadId", params: { threadId: t.id }, replace: true }),
+      });
+    }
+  }, [isLoading, threads, navigate, create]);
 
   return (
     <AppShell user={user}>
       <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">
-        Opening a new chat…
+        Opening the assistant…
       </div>
     </AppShell>
   );
