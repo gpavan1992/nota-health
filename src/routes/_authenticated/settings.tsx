@@ -968,11 +968,12 @@ function SessionsCard({ userId: _userId }: { userId: string }) {
 /* ------------------------------ Models ------------------------------ */
 
 function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
-  const [primary, setPrimary] = useState(profile.ai_model || "claude-3-5-sonnet-latest");
+  const [primary, setPrimary] = useState(profile.ai_model || "gemini-3-flash");
   const [secondary, setSecondary] = useState(
-    profile.ai_model_secondary || "claude-3-5-haiku-latest",
+    profile.ai_model_secondary || "gemini-3-5-flash",
   );
   const update = useUpdateProfile(userId);
+  const hiddenProviders = profile.anthropic_api_key ? [] : (["anthropic"] as const);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -993,14 +994,21 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
         <CardTitle>Model preferences</CardTitle>
         <CardDescription>
           Choose which model powers each Nota Health workflow. Models are grouped
-          by provider — Anthropic, OpenAI, and Google Gemini.
+          by provider — Google Gemini, OpenAI, and Ollama (local). Anthropic
+          models appear once you add an Anthropic API key.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSave} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="primary-model">Primary model — Clinical Assistant</Label>
-            <GroupedModelSelect id="primary-model" value={primary} onValueChange={setPrimary} showHint />
+            <GroupedModelSelect
+              id="primary-model"
+              value={primary}
+              onValueChange={setPrimary}
+              showHint
+              hiddenProviders={[...hiddenProviders]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="secondary-model">Secondary model — Clinical Extractions</Label>
@@ -1009,6 +1017,7 @@ function ModelsTab({ userId, profile }: { userId: string; profile: Profile }) {
               value={secondary}
               onValueChange={setSecondary}
               showHint
+              hiddenProviders={[...hiddenProviders]}
             />
           </div>
 
