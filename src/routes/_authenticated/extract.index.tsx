@@ -194,13 +194,20 @@ function ExtractList() {
           if (!o) {
             setInitialProtocol(undefined);
             setInitialCustomId(undefined);
+            setInitialCaseId(undefined);
+            setPreselectedDocs(undefined);
+            setInitialInstruction(undefined);
           }
         }}
         userId={user.id}
         initialProtocol={initialProtocol}
         customProtocolId={initialCustomId}
+        initialCaseId={initialCaseId}
+        preselectedDocs={preselectedDocs}
+        initialInstruction={initialInstruction}
         onCreated={(id: string) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
       />
+
 
     </AppShell>
   );
