@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-const GITHUB_URL = "https://github.com/gpavan1992/nota";
+const GITHUB_URL = "https://github.com/gpavan1992/nota-health";
 
 export function SiteFooter() {
   return (

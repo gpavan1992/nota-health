@@ -27,9 +27,8 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { NotaLogo, NotaMark } from "@/components/nota-logo";
 
-// Replace with the real repo when it exists. Kept in one place so the
-// footer and hero always agree.
-const GITHUB_URL = "https://github.com";
+// Kept in one place so the footer and hero always agree.
+const GITHUB_URL = "https://github.com/gpavan1992/nota-health";
 
 export const Route = createFileRoute("/")({
   head: () => ({

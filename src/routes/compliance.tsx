@@ -24,7 +24,7 @@ export const Route = createFileRoute("/compliance")({
   component: CompliancePage,
 });
 
-const GITHUB_URL = "https://github.com/gpavan1992/nota";
+const GITHUB_URL = "https://github.com/gpavan1992/nota-health";
 
 function CompliancePage() {
   return (
@@ -131,7 +131,7 @@ function CompliancePage() {
                 rel="noreferrer noopener"
                 className="font-mono text-foreground underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
               >
-                github.com/gpavan1992/nota
+                github.com/gpavan1992/nota-health
               </a>
               .
             </p>
