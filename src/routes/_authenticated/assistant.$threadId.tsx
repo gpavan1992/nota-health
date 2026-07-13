@@ -703,6 +703,7 @@ function AssistantThread() {
                   size="sm"
                   value={modelId}
                   onValueChange={(v) => updateProfile.mutate({ ai_model: v })}
+                  hiddenProviders={[...hiddenModelProviders]}
                 />
                 <Button
                   type="submit"
