@@ -98,6 +98,7 @@ function AssistantThread() {
   const { seed } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const generateThreadTitleFn = useServerFn(generateThreadTitle);
   const { data: profile } = useProfile(user.id);
   const updateProfile = useUpdateProfile(user.id);
   const { data: savedMessages } = useChatMessages(threadId);
