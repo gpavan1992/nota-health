@@ -174,16 +174,17 @@ function AssistantThread() {
     anthropic: !!profile?.anthropic_api_key,
   } as const;
   const fallbackModel = hasKeyFor.google
-    ? "gemini-2-5-flash"
+    ? "gemini-3-flash"
     : hasKeyFor.openai
       ? "gpt-5-5"
       : hasKeyFor.anthropic
         ? "claude-fable-5"
-        : "gemini-2-5-flash";
+        : "gemini-3-flash";
   const modelId =
     savedModel && savedProvider && hasKeyFor[savedProvider as "google" | "openai" | "anthropic"]
       ? savedModel
       : fallbackModel;
+  const hiddenModelProviders = hasKeyFor.anthropic ? [] : (["anthropic"] as const);
   const provider = (getModelChoice(modelId).provider ?? "google") as "anthropic" | "openai" | "google";
   const apiKey =
     provider === "google"
