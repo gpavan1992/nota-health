@@ -1,93 +1,89 @@
-## Scope
+## Protocol feature rework
 
-Extend the Create Custom Protocol modal so that when **Type = Extraction**, users can define the schema of columns the extraction will produce. Route that schema through to the extraction runner and render results with per-format styling. Assistant flow, built-ins, and every other feature are unchanged.
+Rebuilds the Protocols page around three flows: **bulk management**, **two-step create + dedicated column editor**, and **Use-in picker (Assistant / Case)**. Keeps existing Nota styling and design tokens.
 
-## 1. Data model (`src/lib/clinical-protocols.ts`)
+### 1. List page (`protocols.index.tsx`)
 
-Add types + persistence:
+Rework the table and row actions:
 
-```ts
-export type ColumnFormat =
-  | "free_text" | "bulleted_list" | "medication_entry"
-  | "clinical_value" | "icd10" | "yes_no"
-  | "date" | "number" | "provider" | "currency";
+- **Selection column** — checkbox on every row + header master checkbox.
+- **Bulk action bar** — appears when any row is selected (mirrors existing pattern):
+  - *Deactivate / Activate* — enabled only when selection is 100 % built-ins.
+  - *Delete* — enabled only when selection is 100 % custom.
+  - *Rename* — enabled only when selection is exactly one custom.
+  - *Duplicate* — always enabled.
+- **Row menu** (per-row `MoreHorizontal`) — split by source:
+  - Built-in: `Rename`, `Duplicate`, `Edit`, `Deactivate/Activate`.
+  - Custom: `Rename`, `Duplicate`, `Edit`, `Delete`.
+  - `Rename` and `Edit` on built-ins clone the protocol into a new custom copy first (they can't mutate BUILT_IN_PROTOCOLS), then open the corresponding editor.
+- **Create button** — no longer opens the big multi-step dialog; opens a slim "New protocol" modal (Name, Type, Clinical area, Description). On save → `saveCustomProtocol` → `navigate({ to: "/protocols/$protocolId" })`.
+- Remove the current `CreateCustomProtocolDialog` column-builder code from this file.
 
-export interface ExtractionColumnDef {
-  id: string;          // stable client id for drag/delete
-  title: string;
-  format: ColumnFormat;
-  prompt: string;
-}
+### 2. Dedicated protocol editor (`protocols.$protocolId.tsx`)
 
-export interface ClinicalProtocol {
-  ...
-  extractionColumns?: ExtractionColumnDef[]; // present when type === "extraction" (custom only)
-}
-```
+Repurpose the existing detail page into the editor Mike-OSS screen 3 shows:
 
-`saveCustomProtocol` / `updateCustomProtocol` already spread the payload — no shape change needed beyond storing the new field.
+- Header: breadcrumb `Protocols › <name>`, metadata row (Type / Source / Language / Practice area / Jurisdiction fall back to existing Clinical area only — no new fields), `Use` button, `⋯` menu (Duplicate / Edit basics / Delete for custom, Deactivate for built-ins).
+- **Extraction protocols** — show the columns table (Column Title / Format / Prompt) with an `+ Add Column` button (top-right + empty-state CTA). Clicking it opens `AddColumnsDialog` (see below). Rows are inline-editable for custom protocols, read-only for built-ins.
+- **Assistant protocols** — show the starter prompt in a large editable textarea (custom) or rendered markdown (built-in) with an `Edit prompt` button that swaps to edit mode. No column table.
+- Persist edits via `updateCustomProtocol`.
 
-Add `COLUMN_FORMAT_OPTIONS` (label + value) and `TEMPLATE_PRESETS` (Prior Authorization Checklist, Medication Comparison, Lab Results Tracker) with the exact column sets from the request.
+### 3. AddColumnsDialog (new component)
 
-## 2. Modal UI (`src/routes/_authenticated/protocols.tsx` — `CreateCustomProtocolDialog`)
+Mirrors Mike-OSS screens 4-5:
 
-Widen dialog (`max-w-2xl`) and add scroll container so the extended form fits. Existing fields (Name, Type, Clinical area, Description, Starter prompt) remain untouched. Starter prompt keeps showing for **both** types (extraction runs can also seed a natural-language instruction) — the current code only shows it for `assistant`; keep that existing behavior unchanged and place the new section **below** it when Type = Extraction.
+- Modal titled "Tabular Review › New column".
+- Repeating collapsible column cards (default 1, `+ Add another column` at bottom). Each card:
+  - `Column title` input.
+  - `Format` select (existing `COLUMN_FORMAT_OPTIONS` + icons).
+  - `Prompt` textarea with `+ Auto-Generate Prompt` (reuses `callProviderText` / `keyForModel`, gated by API key).
+  - `×` to remove.
+- Footer: `Cancel`, `Add columns` (disabled until every card has a title).
+- On confirm, appends columns to the protocol via `updateCustomProtocol`. Reuses existing dnd-kit ordering on the parent editor page (drag handles on each row).
+- Keep template presets and markdown import accessible as `+ Add from template` / `+ Import markdown` split-buttons next to `+ Add Column` on the editor page (not inside the modal, per user's answer).
 
-When `type === "extraction"`, render below existing fields:
+### 4. Preview modal on list page
 
-**Extraction Columns section**
-- Heading + subtext as specified.
-- If `columns.length === 0`: render "Start from a template:" with the 3 preset cards; clicking one loads its columns.
-- Column list: each column is a card with:
-  - Drag handle (using `@dnd-kit/core` + `@dnd-kit/sortable` — add via `bun add`).
-  - Title input, Format `Select`, Prompt `Textarea`, ✨ Auto-Generate button, × delete button.
-- "+ Add column" button below the list.
-- Footer line: `{n} columns defined`.
-- Save validation: extraction type requires ≥1 column, each with non-empty title.
+Change `PreviewModal` behaviour to match images 6-9:
 
-**Auto-Generate button**
-- Reads `profile.ai_model` + matching API key via `useProfile(userId)` (same pattern as `create-extraction-dialog.tsx`).
-- If no key: button disabled with tooltip "Add an AI key in Settings to use Auto-Generate".
-- Otherwise POSTs the exact prompt from the spec to the chosen provider (reuse `runExtraction`'s provider helpers by extracting a small `callProviderText(apiKey, modelId, prompt)` helper in a new `src/lib/ai-text.ts`, or inline a minimal single-shot call). Populates the prompt field; user can edit.
+- Extraction protocols: render the inline columns table (Column Title / Format / Prompt truncated) directly in the preview body — no more "Open full page for details" message. Reuse the built-in schema fallback via `getProtocol(extractionProtocolId)`.
+- Assistant protocols: render the starter prompt as before.
+- Footer buttons: `View Page` (existing) + `Use` (opens `UseProtocolDialog` — see next).
 
-**Advanced — Import schema from Markdown** (collapsed `<details>` / `Collapsible`)
-- Two sub-blocks: paste-textarea and `<input type="file" accept=".md,.txt">`.
-- "Import Columns" button parses a pipe-delimited markdown table (`| Title | Format | Prompt |`), skips the header + separator rows, maps Format via case-insensitive lookup against the format catalogue (fallback `free_text`), and replaces the current column list. Toasts success/failure per spec.
-- "See expected format →" opens a Tooltip/Popover with a sample table.
+### 5. Use-in picker (new `UseProtocolDialog`)
 
-Parser lives in `src/lib/markdown-schema.ts` with unit-testable pure functions (`parseMarkdownColumns(text): ExtractionColumnDef[] | { error }`).
+Shown from row menu `Use`, preview `Use`, and editor `Use`:
 
-## 3. Threading columns through to the runner
+- Step 1 — "Use in":
+  - `Assistant` (chat) or `Case` (project).
+  - `Additional message` textarea (optional; appended to the starter prompt for assistant, or added as `customInstruction` for extraction).
+- Step 2 (only when Case is chosen):
+  - `Select case` — list from `useCases()`.
+  - When the case is chosen and the protocol is `extraction`, show a document picker fed by `useCaseDocuments(caseId)` (checkbox list of case document names, "Select all" toggle). Since `case_documents` only stores names today, the picker forwards the selected names into the existing extract wizard's uploader as pre-filled slots; user attaches the files. No DB migration.
+- Confirm:
+  - Assistant + Assistant chat → current `chat_threads` insert + navigate, seed = starter prompt (+ additional message).
+  - Assistant + Case → same insert but link via `case_conversations` (existing table) and navigate to the case chat.
+  - Extraction + Assistant → current `/extract` navigation with `customInstruction` in search state.
+  - Extraction + Case → `/extract` navigation with `caseId` and `preselectedDocs` search params; extract page reads them, preloads doc slots, and on completion writes back a `case_documents` row (name = "<protocol> results — <date>") so the extraction appears in the case folder. No new table.
 
-**Where the schema lives at run time.** Today, clicking "Use" on an extraction protocol navigates to `/extract?new=true&protocol=custom` (custom protocols always use the "start from scratch" extraction). We keep that URL but pass the custom protocol id so the Extract flow can look up its columns.
+### 6. Data model / storage
 
-Changes:
-- `runProtocol` in `protocols.tsx`: for custom extraction, navigate with `{ new: true, protocol: "custom", customProtocolId: p.id }`.
-- `src/routes/_authenticated/extract.tsx`: extend the search schema with optional `customProtocolId`.
-- `src/components/create-extraction-dialog.tsx`: accept an optional `customProtocolId` prop; when present, load the protocol via `getClinicalProtocol(id)`, pre-fill the name, force `protocolId = "custom"`, hide the protocol picker, and pass its columns down to `runExtraction`.
-- `src/lib/run-extraction.ts`: extend `ExtractParams` with an optional `columnPrompts?: Record<string, string>`; when provided, include each column's per-column extraction prompt in the JSON instruction block so the model uses it. Existing built-in extraction protocols continue to hit the current code path (columns come from `PROTOCOLS`).
-- Store `format` alongside each column when persisting the extraction (`columns` JSON already has `key`/`label`/`description` — extend `ProtocolColumn` with optional `format?: ColumnFormat`). No DB migration: `extractions.columns` is already a JSON blob.
+- No schema changes. Everything still lives in `localStorage` (`nota.custom_protocols`, `nota.deactivated_protocols`) except case linkage, which reuses existing `case_conversations` / `case_documents`.
+- Add small helpers to `src/lib/clinical-protocols.ts`:
+  - `renameCustomProtocol(id, name)` (thin wrapper over `updateCustomProtocol`).
+  - `duplicateProtocol(source)` — used by row menu and bulk action; always creates a custom clone with fresh column IDs.
 
-## 4. Result rendering (`src/routes/_authenticated/extract.$extractionId.tsx`)
+### 7. Files touched
 
-Add a `renderCell(value, format)` helper that switches on `column.format`:
-- `clinical_value`: parse `"12.3 HIGH"` / `"low"` suffix; wrap in a badge — red HIGH, blue LOW, green NORMAL.
-- `icd10`: monospaced code + description in muted text.
-- `yes_no`: colored badge (green/red/grey).
-- `medication_entry`: split `Drug | Dose | Frequency | Route` into a small grid.
-- Others: plain text.
+- `src/routes/_authenticated/protocols.index.tsx` — trim to list + slim create modal + bulk bar + preview updates.
+- `src/routes/_authenticated/protocols.$protocolId.tsx` — full rewrite as editor page.
+- `src/components/add-columns-dialog.tsx` — new.
+- `src/components/use-protocol-dialog.tsx` — new.
+- `src/lib/clinical-protocols.ts` — helpers.
+- `src/routes/_authenticated/extract.index.tsx` — accept `caseId` + `preselectedDocs` search params, prefill uploader, and write result row into `case_documents` on success.
 
-The existing table already lists rows; add the formatter to the cell renderer. Keep the current "Copy as CSV" and "Export as CSV" buttons if they exist; if not (verify while editing), add both using the same rendering-as-text strategy (raw values, not the styled markup).
+### Out of scope
 
-## 5. Non-goals / unchanged
-
-- Assistant flow, built-in protocols, the sidebar/nav, and Clinical Assistant are untouched.
-- No new DB tables — custom protocols already live in `localStorage`, and the new `extractionColumns` array rides along in the same JSON blob.
-- No changes to `PROTOCOLS` in `src/lib/protocols.ts` beyond adding an optional `format` field to `ProtocolColumn`.
-
-## Technical details
-
-- New deps: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (drag reorder).
-- New files: `src/lib/markdown-schema.ts`, `src/lib/ai-text.ts` (single-shot text call reused by Auto-Generate).
-- Edited files: `src/lib/clinical-protocols.ts`, `src/lib/protocols.ts`, `src/lib/run-extraction.ts`, `src/routes/_authenticated/protocols.tsx`, `src/routes/_authenticated/extract.tsx`, `src/routes/_authenticated/extract.$extractionId.tsx`, `src/components/create-extraction-dialog.tsx`.
-- Storage stays in `localStorage` under the existing `nota.custom_protocols` key.
+- Language / Version / Jurisdiction fields from the Mike-OSS screenshots (not present in the current data model).
+- New Supabase tables — reusing existing case tables only.
+- Any change to Assistant, Cases, or the extract runner beyond the search-param plumbing above.
