@@ -38,6 +38,9 @@ export function CreateExtractionDialog({
   onCreated,
   initialProtocol,
   customProtocolId,
+  initialCaseId,
+  preselectedDocs,
+  initialInstruction,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -45,6 +48,9 @@ export function CreateExtractionDialog({
   onCreated: (id: string) => void;
   initialProtocol?: string;
   customProtocolId?: string;
+  initialCaseId?: string;
+  preselectedDocs?: string[];
+  initialInstruction?: string;
 }) {
   const { data: profile } = useProfile(userId);
   const [name, setName] = useState("");
@@ -61,17 +67,18 @@ export function CreateExtractionDialog({
     const custom = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
     setName(custom ? custom.name : "");
     setProtocolId(initialProtocol ?? "medication_list");
-    setCustomInstruction("");
-    setLinkCase(false);
-    setCaseId("");
-    setDocs([]);
+    setCustomInstruction(initialInstruction ?? "");
+    setLinkCase(!!initialCaseId);
+    setCaseId(initialCaseId ?? "");
+    setDocs((preselectedDocs ?? []).map((n) => ({ name: n, text: "" })));
     supabase
       .from("cases")
       .select("id, name")
       .order("updated_at", { ascending: false })
       .limit(50)
       .then(({ data }) => setCases(data ?? []));
-  }, [open, initialProtocol, customProtocolId]);
+  }, [open, initialProtocol, customProtocolId, initialCaseId, preselectedDocs, initialInstruction]);
+
 
   const customProto = customProtocolId ? getClinicalProtocol(customProtocolId) : undefined;
   const customColumns = customProto?.extractionColumns ?? [];
@@ -181,7 +188,7 @@ export function CreateExtractionDialog({
         modelId,
         protocolName: effectiveProtocolName,
         columns: effectiveColumns,
-        customInstruction: protocolId === "custom" && customColumns.length === 0 ? customInstruction : undefined,
+        customInstruction: customInstruction.trim() || undefined,
         documents: usable,
       });
       await supabase

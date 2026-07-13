@@ -19,6 +19,10 @@ export const Route = createFileRoute("/_authenticated/extract/")({
     protocol: typeof search.protocol === "string" ? (search.protocol as string) : undefined,
     customProtocolId:
       typeof search.customProtocolId === "string" ? (search.customProtocolId as string) : undefined,
+    caseId: typeof search.caseId === "string" ? (search.caseId as string) : undefined,
+    preselectedDocs:
+      typeof search.preselectedDocs === "string" ? (search.preselectedDocs as string) : undefined,
+    instruction: typeof search.instruction === "string" ? (search.instruction as string) : undefined,
   }),
   component: ExtractList,
 });
@@ -32,16 +36,27 @@ function ExtractList() {
   const [createOpen, setCreateOpen] = useState(false);
   const [initialProtocol, setInitialProtocol] = useState<string | undefined>(undefined);
   const [initialCustomId, setInitialCustomId] = useState<string | undefined>(undefined);
+  const [initialCaseId, setInitialCaseId] = useState<string | undefined>(undefined);
+  const [preselectedDocs, setPreselectedDocs] = useState<string[] | undefined>(undefined);
+  const [initialInstruction, setInitialInstruction] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (searchParams.new) {
       setInitialProtocol(searchParams.protocol);
       setInitialCustomId(searchParams.customProtocolId);
+      setInitialCaseId(searchParams.caseId);
+      setPreselectedDocs(
+        searchParams.preselectedDocs
+          ? searchParams.preselectedDocs.split("||").filter(Boolean)
+          : undefined,
+      );
+      setInitialInstruction(searchParams.instruction);
       setCreateOpen(true);
       navigate({ to: "/extract", search: {}, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.new, searchParams.protocol, searchParams.customProtocolId]);
+  }, [searchParams.new]);
+
 
 
 
@@ -179,13 +194,20 @@ function ExtractList() {
           if (!o) {
             setInitialProtocol(undefined);
             setInitialCustomId(undefined);
+            setInitialCaseId(undefined);
+            setPreselectedDocs(undefined);
+            setInitialInstruction(undefined);
           }
         }}
         userId={user.id}
         initialProtocol={initialProtocol}
         customProtocolId={initialCustomId}
+        initialCaseId={initialCaseId}
+        preselectedDocs={preselectedDocs}
+        initialInstruction={initialInstruction}
         onCreated={(id: string) => navigate({ to: "/extract/$extractionId", params: { extractionId: id } })}
       />
+
 
     </AppShell>
   );
