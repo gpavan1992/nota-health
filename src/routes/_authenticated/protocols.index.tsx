@@ -437,44 +437,37 @@ function RowMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onUse} disabled={row.deactivated}>
-          <Play className="mr-2 h-4 w-4" />
-          Use
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/protocols/$protocolId" params={{ protocolId: row.id }}>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View Page
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {isCustom && (
-          <DropdownMenuItem onClick={onRename}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Rename
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={onDuplicate}>
-          <CopyIcon className="mr-2 h-4 w-4" />
-          Duplicate
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onEdit}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Edit
-        </DropdownMenuItem>
         {isCustom ? (
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onDelete}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={onDuplicate}>
+              <CopyIcon className="mr-2 h-4 w-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onDelete}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </>
         ) : (
-          <DropdownMenuItem onClick={onDeactivate}>
-            <Power className="mr-2 h-4 w-4" />
-            {row.deactivated ? "Activate" : "Deactivate"}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={onDuplicate}>
+              <CopyIcon className="mr-2 h-4 w-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onDeactivate}>
+              <Power className="mr-2 h-4 w-4" />
+              {row.deactivated ? "Activate" : "Deactivate"}
+            </DropdownMenuItem>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
