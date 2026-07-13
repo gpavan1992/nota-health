@@ -550,7 +550,11 @@ function AssistantThread() {
         >
           {!hasMessages ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-[0.72rem] font-medium uppercase tracking-[0.16em] text-primary">
+              <p className="inline-flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-primary">
+                <span
+                  aria-hidden
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse-fade"
+                />
                 Clinical Assistant
               </p>
               <h1 className="mt-3 font-serif text-4xl font-medium tracking-tight text-foreground">
