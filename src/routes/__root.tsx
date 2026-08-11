@@ -79,18 +79,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nota Health — Clinical Documentation Intelligence" },
+      { title: "Nota Health — Open Source Clinical AI Assistant" },
       {
         name: "description",
         content:
-          "Nota Health helps clinicians and health administrators upload clinical documents and get intelligent, AI-powered answers about them.",
+          "Open source clinical assistant for healthcare teams: chat with medical documents, extract structured data, and run protocol reviews. Self-hostable, AGPL-3.0.",
       },
       { name: "author", content: "Nota Health" },
-      { property: "og:title", content: "Nota Health — Clinical Documentation Intelligence" },
+      { property: "og:title", content: "Nota Health — Open Source Clinical AI Assistant" },
       {
         property: "og:description",
         content:
-          "Upload clinical documents, ask questions, and get intelligent AI-powered answers.",
+          "Open source clinical assistant for healthcare teams: chat with medical documents, extract structured data, and run protocol reviews. Self-hostable, AGPL-3.0.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
