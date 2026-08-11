@@ -33,17 +33,17 @@ const GITHUB_URL = "https://github.com/gpavan1992/nota-health";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Nota Health — the open source clinical assistant" },
+      { title: "Nota Health — Open Source Clinical AI Assistant" },
       {
         name: "description",
         content:
-          "Nota Health is an open source clinical assistant. Chat with medical documents, extract structured data, run prior auth reviews — self-hostable, bring-your-own-AI-key, AGPL-3.0.",
+          "Open source clinical assistant for healthcare teams: chat with medical documents, extract structured data, and run protocol reviews. Self-hostable, AGPL-3.0.",
       },
-      { property: "og:title", content: "Nota Health — the open source clinical assistant" },
+      { property: "og:title", content: "Nota Health — Open Source Clinical AI Assistant" },
       {
         property: "og:description",
         content:
-          "Documents, extractions, protocols, and clinical tools for healthcare teams. Self-hostable and open source under AGPL-3.0.",
+          "Open source clinical assistant for healthcare teams: chat with medical documents, extract structured data, and run protocol reviews. Self-hostable, AGPL-3.0.",
       },
       { property: "og:url", content: "/" },
     ],
